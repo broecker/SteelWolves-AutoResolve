@@ -2,6 +2,7 @@ import random
 
 cups = {}
 torp = -1
+bdienst = 0
 
 tdcCup = []
 
@@ -252,15 +253,11 @@ def drawCounters(count, cup):
 
 	if count > len(cup):
 		print('warning, requested draws exceed cup!')
-		count = len(cup)
-
-	c2 = cup;
-	
-	random.shuffle(c2)
-	c2 = c2[0:count]
-
-	return c2
-
+		return cup
+	else:
+		random.shuffle(cup)
+		c2 = cup[0:count]
+		return c2
 
 def attackC1(subs):
 
@@ -280,11 +277,60 @@ def attackC1(subs):
 	pass
 
 
+def placeSub(positions, sub):
+	for p in positions:
+		if sub['tac_roll'] > p['entry']:
+
+			# see if we have empty positions
+			print(p, p['subs'])
+
+			for e in p['subs']:
+				if e == None:
+
+					# place sub here
+					print(p, sub)
+
+					return True
+
+
+	return False
+
+
+def attackC2(subs):
+	# fill in columns
+	os = drawCounters(5, cups['outer'])
+	s = drawCounters(5, cups['inner'])
+	cs = drawCounters(5, cups['center'])
+	cp = drawCounters(5, cups['center'])
+	p = drawCounters(5, cups['inner'])
+	op = drawCounters(5, cups['outer'])
+
+
+	# submarine position
+	os_pos = {'entry':None, 'subs': [None, None, None]}
+	s_pos =  {'entry':7, 'subs': [None, None]}
+	cs_pos = {'entry':9, 'subs': [None]}
+	cp_pos = {'entry':9, 'subs': [None]}
+	p_pos = {'entry':7, 'subs': [None, None]}
+	op_pos = {'entry':None, 'subs': [None, None, None]}
+
+	# move into best position
+	for s in subs:
+		tac_roll = random.randint(0, 9) + s['tac'] + s['skipper']
+		s['tac_roll'] = tac_roll
+
+		placeSub([cp_pos, cs_pos, s_pos, p_pos, os_pos, op_pos], s)
+
+
+
+
 if __name__ == '__main__':
 	seedCups(1)
 	seedTDCCup()
 
 	# search and contact phase here
-	sub = {'skipper':0, 'tac':6}
+	sub1 = {'skipper':0, 'tac':6}
+	sub2 = {'skipper':1, 'tac':6}
+	sub3 = {'skipper':-1, 'tac':6}
 
-	attackC1([sub])
+	attackC2([sub1, sub2, sub3])
