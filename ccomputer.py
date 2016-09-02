@@ -13,6 +13,7 @@ class Encounter:
 		self.nation = nation
 		self.tons = tons
 		self.defense = defense
+		self.visible = False
 
 class Column:
 	def __init__(self, name, entry, max_subs):
@@ -21,6 +22,9 @@ class Column:
 		self.entry = entry
 		self.sub_positions = []
 		self.max_subs = max_subs
+
+	def setAdjacent(self, adj):
+		self.adjacent = adj
 
 	def seed(self, cup, count):
 		if len(cup) < count:
@@ -36,6 +40,36 @@ class Column:
 		for t in self.targets:
 			t.visible = False
 
+	def revealAll(self):
+		for t in self.targets:
+			t.visible = True
+
+	def revealCounters(self, n, tryNeigbours=True):
+		if self.countHidden() < n:
+			print ('Warning, not enough hidden counters remaining in column', self.name, '-- revealing all!')
+						
+			if tryNeigbours:
+				o = n - self.countHidden()
+
+				# split the overflow between adjacent columns
+				l = round(o / len(self.adjacent))
+				r = o - l
+
+				self.adjacent[0].revealCounters(l, False)
+				if r > 0:
+					self.adjacent[1].revealCounters(r, False)
+
+			self.revealAll();
+		else:
+			revealed = random.sample(self.targets, n)
+			for r in revealed:
+				r.visible = True
+
+
+
+	def countHidden(self):
+		return sum(t.visible == False for t in self.targets)
+
 	def tryAndPlaceSub(self, sub):
 		if (self.entry == None or sub.tac_roll > self.entry) and len(self.sub_positions) < self.max_subs:
 			self.sub_positions.append(sub)
@@ -47,6 +81,21 @@ class Column:
 		else:
 			return False;
 
+	def printColumn(self):
+		''' prints the column horizontally'''
+
+		counters = []
+		for c in self.targets:
+			if c.visible:
+				counters.append(c.type)
+			else:
+				counters.append('**')
+
+		subs = [s for s in self.sub_positions]
+
+		print(self.name, counters, subs)
+
+
 class Sub:
 	def __init__(self, tac, skipper):
 		self.tac = tac
@@ -54,6 +103,9 @@ class Sub:
 
 	def performTacRoll(self):
 		self.tac_roll = random.randint(0,9) + self.tac + self.skipper
+
+	def revealCounters(self):
+		self.column.revealCounters(self.tac, True)
 
 
 def getEvent(type) : 
@@ -342,6 +394,13 @@ def attackC2(subs):
 	p = Column('Port', 7, 2)
 	op = Column('Outer Port', None, 3)
 
+	os.setAdjacent([s])
+	s.setAdjacent([os,cs])
+	cs.setAdjacent([s,cp])
+	cp.setAdjacent([cs, p])
+	p.setAdjacent([cp,op])
+	op.setAdjacent([p])
+
 	allColumns = [cs, cp, p, s, os, op]
 
 
@@ -354,13 +413,24 @@ def attackC2(subs):
 
 
 	# roll for each sub [14.11]
-	for s in subs:
-		s.performTacRoll()
+	for sub in subs:
+		sub.performTacRoll()
 
 		# try and place the sub as close to the center as possible
 		for c in allColumns:
-			if c.tryAndPlaceSub(s):
+			if c.tryAndPlaceSub(sub):
 				break;
+
+	# reveal counters [14.12]
+	for sub in subs:
+		sub.revealCounters()
+
+	os.printColumn()
+	s.printColumn()
+	cs.printColumn()
+	cp.printColumn()
+	p.printColumn()
+	op.printColumn()
 
 
 
@@ -369,7 +439,9 @@ if __name__ == '__main__':
 	seedTDCCup()
 
 	# search and contact phase here
-	sub1 = Sub(4, 0)
-	sub2 = Sub(4, 1)
-	sub3 = Sub(4, -1)
-	attackC2([sub1, sub2, sub3])
+	sub1 = Sub(3, 0)
+	sub2 = Sub(3, 1)
+	sub3 = Sub(3, 2)
+	sub4 = Sub(2, 2)
+	sub5 = Sub(3, -1)
+	attackC2([sub1, sub2, sub3, sub4, sub5])
