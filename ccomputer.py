@@ -7,14 +7,15 @@ bdienst = 0
 tdcCup = []
 
 
+def getEvent(type) : 
+	return {'type' : type, 'visible' : False}
+
 def getAircraft(nation, strength):
-	ac = {'nation': nation, 'strength':strength, 'type':'AC'}
-	return ac
-
+	return {'nation': nation, 'strength':strength, 'type':'AC', 'visible':False}
+	
 def getShip(type, nation, tons, defense):
-	ship = {'type':type, 'nation':nation, 'tons':tons, 'defense':defense}
-	return ship
-
+	return {'type':type, 'nation':nation, 'tons':tons, 'defense':defense, 'visible':False}
+	
 def getWarship(type, name, tons, defense):
 	ws = getShip(type, 'british', tons, defense);
 	ws['name'] = name
@@ -32,9 +33,8 @@ def getES(nation, diligent):
 	return es
 
 def getAM(nation):
-	am = getShip('AM', nation, 2, 2)
-	return am
-
+	return getShip('AM', nation, 2, 2)
+	
 def getMerchant(nation, hvy):
 	m = getShip('M', nation, 0, 0);
 
@@ -81,9 +81,9 @@ def seedCup(config):
 		print('error -- configuration vector wrong size!')
 
 	# events [0, 1]
-	cup.append('EVENT')
+	cup.append(getEvent('Event'))
 	if config[1]:
-		cup.append('DRAW LINER')
+		cup.append(getEvent('Draw Liner'))
 
 	# convoy/loner aircraft [2, 11]
 	if config[2]:
@@ -277,27 +277,49 @@ def attackC1(subs):
 	pass
 
 
+def hideColumn(col):
+	for c in col:
+		c['visible'] = False;
+
+def revealCounters(sub):
+	''' flips num counters to be visible in the given column'''
+
+	print('sub is reveling', sub['tac'], 'counters in position', sub['position']['name'])
+
+	# count how many are unrevealed first
+	unrevealed = sum(c['visible'] == True for c in sub['column'])
+	print(unrevealed)
+
+
+
 def placeSub(positions, sub):
+
 	for p in positions:
-		if sub['tac_roll'] > p['entry']:
+
+		if p['entry'] == None or sub['tac_roll'] > p['entry']:
 
 			# see if we have empty positions
-			print(p, p['subs'])
+			try:
+				a = p['subs'].index(None)
+				p['subs'][a] = sub				
+				print('Sub entered position', p['name'], '[ die roll: ', sub['tac_roll'], '>', p['entry'], ']')
 
-			for e in p['subs']:
-				if e == None:
+				sub['column'] = p['column']
+				sub['position']  = p
 
-					# place sub here
-					print(p, sub)
-
-					return True
+				return
+			except ValueError:
+				# silently ignore errors and try the next position
+				pass
 
 
 	return False
 
 
 def attackC2(subs):
-	# fill in columns
+	print('Attacking large convoy (C2)')
+
+	# fill in columns [13.24]
 	os = drawCounters(5, cups['outer'])
 	s = drawCounters(5, cups['inner'])
 	cs = drawCounters(5, cups['center'])
@@ -305,16 +327,22 @@ def attackC2(subs):
 	p = drawCounters(5, cups['inner'])
 	op = drawCounters(5, cups['outer'])
 
+	hideColumn(os)
+	hideColumn(s)
+	hideColumn(cs)
+	hideColumn(cp)
+	hideColumn(p)
+	hideColumn(op)
 
 	# submarine position
-	os_pos = {'entry':None, 'subs': [None, None, None]}
-	s_pos =  {'entry':7, 'subs': [None, None]}
-	cs_pos = {'entry':9, 'subs': [None]}
-	cp_pos = {'entry':9, 'subs': [None]}
-	p_pos = {'entry':7, 'subs': [None, None]}
-	op_pos = {'entry':None, 'subs': [None, None, None]}
+	os_pos = {'entry':None, 'subs': [None, None, None], 'name':'Outer Starboard', 'column':os}
+	s_pos =  {'entry':7, 'subs': [None, None], 'name':'Starboard', 'column':s}
+	cs_pos = {'entry':9, 'subs': [None], 'name':'Center Starboard', 'column':cs }
+	cp_pos = {'entry':9, 'subs': [None], 'name':'Center Port', 'column':cp}
+	p_pos = {'entry':7, 'subs': [None, None], 'name':'Port', 'column':p}
+	op_pos = {'entry':None, 'subs': [None, None, None], 'name':'Outer Port', 'column':op}
 
-	# move into best position
+	# move into best position [14.11]
 	for s in subs:
 		tac_roll = random.randint(0, 9) + s['tac'] + s['skipper']
 		s['tac_roll'] = tac_roll
@@ -322,6 +350,15 @@ def attackC2(subs):
 		placeSub([cp_pos, cs_pos, s_pos, p_pos, os_pos, op_pos], s)
 
 
+	# reveal counters [14.12]
+	for s in subs:
+		revealCounters(s)
+
+
+
+
+	# print sub positions
+	#print(os_pos, s_pos, cs_pos, cp_pos, p_pos, op_pos)
 
 
 if __name__ == '__main__':
