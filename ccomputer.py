@@ -7,52 +7,94 @@ bdienst = 0
 tdcCup = []
 
 
+class Encounter:
+	def __init__(self, type, nation, tons, defense):
+		self.type = type
+		self.nation = nation
+		self.tons = tons
+		self.defense = defense
+
+class Column:
+	def __init__(self, name, entry, max_subs):
+		self.name = name
+		self.targets = []
+		self.entry = entry
+		self.sub_positions = []
+		self.max_subs = max_subs
+
+	def seed(self, cup, count):
+		if len(cup) < count:
+			print('Warning, draw amount exceeds cup!')
+			self.targets = cup
+		else:
+			self.targets = random.sample(cup, count)
+
+		random.shuffle(self.targets)
+		self.hideAll()
+
+	def hideAll(self):
+		for t in self.targets:
+			t.visible = False
+
+	def tryAndPlaceSub(self, sub):
+		if (self.entry == None or sub.tac_roll > self.entry) and len(self.sub_positions) < self.max_subs:
+			self.sub_positions.append(sub)
+			sub.column = self
+
+			print('Placed sub in column', self.name,' [ roll:', sub.tac_roll, '>', self.entry,']')
+
+			return True;
+		else:
+			return False;
+
+class Sub:
+	def __init__(self, tac, skipper):
+		self.tac = tac
+		self.skipper = skipper
+
+	def performTacRoll(self):
+		self.tac_roll = random.randint(0,9) + self.tac + self.skipper
+
+
 def getEvent(type) : 
-	return {'type' : type, 'visible' : False}
+	return Encounter(type, None, None, None);
 
 def getAircraft(nation, strength):
-	return {'nation': nation, 'strength':strength, 'type':'AC', 'visible':False}
-	
-def getShip(type, nation, tons, defense):
-	return {'type':type, 'nation':nation, 'tons':tons, 'defense':defense, 'visible':False}
-	
+	return Encounter('AC', nation, None, strength);
+
 def getWarship(type, name, tons, defense):
-	ws = getShip(type, 'british', tons, defense);
-	ws['name'] = name
+	ws = Encounter(type, 'british', tons, defense)
+	ws.name = name
 	return ws
 
 def getDD(nation, tons, diligent):
-	dd = getShip('DD', nation, tons, 3)
-	dd['diligent'] = diligent
-
+	dd = Encounter('DD', nation, tons, 3)
+	dd.diligent = diligent
 	return dd
 
 def getES(nation, diligent):
-	es = getShip('ES', nation, 2, 2)
-	es['diligent'] = diligent
+	es = Encounter('ES', nation, 2, 2)
+	es.diligent = diligent
 	return es
 
 def getAM(nation):
-	return getShip('AM', nation, 2, 2)
+	return Encounter('AM', nation, 2, 2)
 	
 def getMerchant(nation, hvy):
-	m = getShip('M', nation, 0, 0);
+	m = Encounter('M', nation, 0, 0);
 
 	MAX_MERCHANT_TONNAGE = 10;
 	if hvy == True:
-		m['tons'] = random.randint(6, MAX_MERCHANT_TONNAGE)
+		m.tons = random.randint(6, MAX_MERCHANT_TONNAGE)
 	else:
-		m['tons'] = random.randint(2, 5)
-
+		m.tons = random.randint(2, 5)
 	return m;
 
 def getSV(nation, tons):
-	return getShip('SV', nation, tons, 0)
+	return Encounter('SV', nation, tons, 0)
 
 def getFV():
-	return getShip('FV', 'british', 1, 0);
-
-
+	return Encounter('FV', 'british', 1, 0);
 
 def getMerchants(count, nation, heavy):
 	ms = []
@@ -119,7 +161,7 @@ def seedCup(config):
 
 	cup += getDDs(config[28], 'french', 2, False)
 	if config[29]:
-		cup.append(getShip('TB', 'french', 1, 1))
+		cup.append(Encounter('TB', 'french', 1, 1))
 
 	cup += getDDs(config[30], 'us', 1, False)
 	cup += getDDs(config[31], 'us', 2, False)
@@ -151,7 +193,7 @@ def seedCup(config):
 	cup += getMerchants(config[51], 'us/brazil/soviet', False)
 	
 	if config[52]:
-		cup.append(getShip('CM', 'british', 7, 4))
+		cup.append(Encounter('CM', 'british', 7, 4))
 
 
 	if config[53] > 0:
@@ -249,37 +291,10 @@ def seedCups(wp):
 
 	#printCup(cups['loner'])
 	
-def drawCounters(count, cup):
-
-	if count > len(cup):
-		print('warning, requested draws exceed cup!')
-		return cup
-	else:
-		random.shuffle(cup)
-		c2 = cup[0:count]
-		return c2
-
-def attackC1(subs):
-
-	# fill in the columns
-	innerSTB = drawCounters(6, cups['outer'])
-	innerPRT = drawCounters(6, cups['inner'])
-	outerSTB = drawCounters(6, cups['outer'])
-	outerPRT = drawCounters(6, cups['inner'])
-
-	# print
-	for i in range(0, len(outerSTB)):
-		print(outerSTB[i]['type'], innerSTB[i]['type'], innerPRT[i]['type'], outerPRT[i]['type'])
-
-	# place submarines
-
-
-	pass
-
 
 def hideColumn(col):
 	for c in col:
-		c['visible'] = False;
+		c.visible = False;
 
 def revealCounters(sub):
 	''' flips num counters to be visible in the given column'''
@@ -320,45 +335,33 @@ def attackC2(subs):
 	print('Attacking large convoy (C2)')
 
 	# fill in columns [13.24]
-	os = drawCounters(5, cups['outer'])
-	s = drawCounters(5, cups['inner'])
-	cs = drawCounters(5, cups['center'])
-	cp = drawCounters(5, cups['center'])
-	p = drawCounters(5, cups['inner'])
-	op = drawCounters(5, cups['outer'])
+	os = Column('Outer Starboard', None, 3)
+	s = Column('Starboard', 7, 2)
+	cs = Column('Center Starboard', 9, 1)
+	cp = Column('Center Port', 9, 1)
+	p = Column('Port', 7, 2)
+	op = Column('Outer Port', None, 3)
 
-	hideColumn(os)
-	hideColumn(s)
-	hideColumn(cs)
-	hideColumn(cp)
-	hideColumn(p)
-	hideColumn(op)
+	allColumns = [cs, cp, p, s, os, op]
 
-	# submarine position
-	os_pos = {'entry':None, 'subs': [None, None, None], 'name':'Outer Starboard', 'column':os}
-	s_pos =  {'entry':7, 'subs': [None, None], 'name':'Starboard', 'column':s}
-	cs_pos = {'entry':9, 'subs': [None], 'name':'Center Starboard', 'column':cs }
-	cp_pos = {'entry':9, 'subs': [None], 'name':'Center Port', 'column':cp}
-	p_pos = {'entry':7, 'subs': [None, None], 'name':'Port', 'column':p}
-	op_pos = {'entry':None, 'subs': [None, None, None], 'name':'Outer Port', 'column':op}
 
-	# move into best position [14.11]
+	os.seed(cups['outer'], 5)
+	s.seed(cups['inner'], 5)
+	cs.seed(cups['center'], 5)
+	cp.seed(cups['center'], 5)
+	p.seed(cups['inner'], 5)
+	op.seed(cups['outer'], 5) 
+
+
+	# roll for each sub [14.11]
 	for s in subs:
-		tac_roll = random.randint(0, 9) + s['tac'] + s['skipper']
-		s['tac_roll'] = tac_roll
+		s.performTacRoll()
 
-		placeSub([cp_pos, cs_pos, s_pos, p_pos, os_pos, op_pos], s)
+		# try and place the sub as close to the center as possible
+		for c in allColumns:
+			if c.tryAndPlaceSub(s):
+				break;
 
-
-	# reveal counters [14.12]
-	for s in subs:
-		revealCounters(s)
-
-
-
-
-	# print sub positions
-	#print(os_pos, s_pos, cs_pos, cp_pos, p_pos, op_pos)
 
 
 if __name__ == '__main__':
@@ -366,8 +369,7 @@ if __name__ == '__main__':
 	seedTDCCup()
 
 	# search and contact phase here
-	sub1 = {'skipper':0, 'tac':6}
-	sub2 = {'skipper':1, 'tac':6}
-	sub3 = {'skipper':-1, 'tac':6}
-
+	sub1 = Sub(4, 0)
+	sub2 = Sub(4, 1)
+	sub3 = Sub(4, -1)
 	attackC2([sub1, sub2, sub3])
