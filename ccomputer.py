@@ -1,10 +1,8 @@
 import random
 
 cups = {}
-torp = -1
+torpvalue = -1
 bdienst = 0
-
-tdcCup = []
 
 
 class Encounter:
@@ -14,6 +12,13 @@ class Encounter:
 		self.tons = tons
 		self.defense = defense
 		self.visible = False
+		self.diligent = False
+		self.validTarget = True
+		self.damaged = False
+		self.column = None
+
+	def __repr__(self):
+		return self.type + '(' + str(self.tons) + '-' + str(self.defense) + ')'
 
 class Column:
 	def __init__(self, name, entry, max_subs):
@@ -39,14 +44,21 @@ class Column:
 	def hideAll(self):
 		for t in self.targets:
 			t.visible = False
+			t.column = self
 
 	def revealAll(self):
 		for t in self.targets:
 			t.visible = True
 
+		return self.targets
+
 	def revealCounters(self, n, tryNeigbours=True):
+		result = []
+
+		print('Revealing', n, 'counters in column', self.name)
+
 		if self.countHidden() < n:
-			print ('Warning, not enough hidden counters remaining in column', self.name, '-- revealing all!')
+			print ('Warning, not enough hidden counters remaining in column', self.name)
 						
 			if tryNeigbours:
 				o = n - self.countHidden()
@@ -55,17 +67,26 @@ class Column:
 				l = round(o / len(self.adjacent))
 				r = o - l
 
-				self.adjacent[0].revealCounters(l, False)
+				result += self.adjacent[0].revealCounters(l, False)
 				if r > 0:
-					self.adjacent[1].revealCounters(r, False)
+					result += self.adjacent[1].revealCounters(r, False)
 
-			self.revealAll();
+			result += self.revealAll();
 		else:
 			revealed = random.sample(self.targets, n)
 			for r in revealed:
 				r.visible = True
 
+			result = revealed
 
+		return result
+
+	def getASWValue(self):
+		return sum(n.defense for n in self.targets if (n.visible and n.validTarget))
+
+
+	def getVisibleTargets(self):
+		return [t for t in self.targets if t.visible and t.validTarget]		
 
 	def countHidden(self):
 		return sum(t.visible == False for t in self.targets)
@@ -75,7 +96,7 @@ class Column:
 			self.sub_positions.append(sub)
 			sub.column = self
 
-			print('Placed sub in column', self.name,' [ roll:', sub.tac_roll, '>', self.entry,']')
+			print('Placed sub',sub.name,'in column', self.name,' [ roll:', sub.tac_roll, '>', self.entry,']')
 
 			return True;
 		else:
@@ -97,22 +118,127 @@ class Column:
 
 
 class Sub:
-	def __init__(self, tac, skipper):
-		self.tac = tac
+	def __init__(self, name, tac, attack, skipper):
+		self.name = name
+		self.tacRating = tac
 		self.skipper = skipper
+		self.crashDiveRating = 3
+		self.inexperienced = False
+		self.spotted = False
+		self.attackRating = attack
+
+	def __repr__(self):
+		return self.name + '(' + str(self.tacRating) + ')'
 
 	def performTacRoll(self):
-		self.tac_roll = random.randint(0,9) + self.tac + self.skipper
+		self.tac_roll = random.randint(0,9) + self.tacRating + self.skipper
 
 	def revealCounters(self):
-		self.column.revealCounters(self.tac, True)
+		return self.column.revealCounters(self.tacRating, True)
+
+	def crashDive(self):
+		roll = random.randint(0, 9)
+		if self.inexperienced:
+			roll += 1
+
+		if roll < self.crashDiveRating:
+			self.spotted = True
+			print('Sub', self.name, 'fails to crash dive, becomes spotted')
+		else:
+			print('Sub', self.name, 'crash dives!')
+		
+	def attack(self):
+
+		# get revealed targets in the current and adjacent columns
+		revealed = self.column.getVisibleTargets()
+		for a in self.column.adjacent:
+			revealed += a.getVisibleTargets()
+
+		print('Sub', self.name, 'has', len(revealed), 'potential targets, placing', self.tacRating, 'TDC markers')
+		
+		# sort them by tonnage
+		revealed.sort(key=lambda x: x.tons, reverse=True)
+		revealed = revealed[0:self.tacRating]
+
+		# set TDC markers [14.14]
+		for r in revealed:
+			r.tdc = drawTDCCounter()
+			print('Target/TDC:', r, r.tdc)
+
+
+		targets = []
+
+		# split combat value in 3's and assign targets [14.15]
+		cv = self.attackRating
+		tdcIndex = 0
+		while cv > 0:
+			# place a TDC on a counter
+			
+			r = revealed[tdcIndex]
+			r.tdc = drawTDCCounter()
+			targets.append(r)
+
+			tdcIndex += 1
+			cv -= 3 
+
+
+		# 14.15 targeted escorts
+
+		# 14.16 attack
+		attackValue = self.attackRating + self.skipper + torpvalue
+	
+		for t in targets:
+			aswValue = self.column.getASWValue()
+			for a in self.column.adjacent:
+				aswValue += a.getASWValue()
+
+			columnMod = 0
+			if self.column != t.column:
+				columnMod = 1
+			damageMod = 0
+			if t.damaged:
+				damageMod = -1
+
+			print('Combat vs', t)
+			print('Attack :', attackValue, '[', self.attackRating, 'attack,',self.skipper,'skipper,',torpvalue,' torp rating]')
+			print('Defense:', aswValue, '[', aswValue, 'ASW,', t.tdc,'TDC,', columnMod, 'column mod,',damageMod, ' damaged]')
+			aswValue = aswValue + t.tdc + columnMod + damageMod
+
+
+			diff = attackValue - aswValue
+			roll = random.randint(0, 9)
+			if self.inexperienced:
+				roll += 1
+
+			if roll <= diff:
+				print('Diff:',diff,'Roll:', roll, 'Target hit')
+
+				# consult attack results table here
+
+
+			else:
+				print('Diff:',diff,'Roll:', roll, 'Target missed')
+
+
+		# TODO: add plane and ac asw factors  
+
+
+
+		# remove tdc markers again
+		for r in revealed:
+			r.tdc = None
+
 
 
 def getEvent(type) : 
-	return Encounter(type, None, None, None);
+	e = Encounter(type, None, None, None);
+	e.validTarget = False;
+	return e
 
 def getAircraft(nation, strength):
-	return Encounter('AC', nation, None, strength);
+	ac = Encounter('AC', nation, None, strength);
+	ac.validTarget = False
+	return ac
 
 def getWarship(type, name, tons, defense):
 	ws = Encounter(type, 'british', tons, defense)
@@ -269,17 +395,20 @@ def printCup(cup):
 		print(c)
 
 def seedTDCCup():
-	tdcCup = []
+	cups['tdc'] = []
 
 	for i in range(0,5):
-		tdcCup.append(-2)
-		tdcCup.append(2)
+		cups['tdc'].append(-2)
+		cups['tdc'].append(2)
 	for i in range(0,10):
-		tdcCup.append(-1)
-		tdcCup.append(1)
-		tdcCup.append(0)
+		cups['tdc'].append(-1)
+		cups['tdc'].append(1)
+		cups['tdc'].append(0)
 
-	random.shuffle(tdcCup)
+	random.shuffle(cups['tdc'])
+
+def drawTDCCounter():
+	return random.choice(cups['tdc'])
 
 
 # This class provides the functionality we want. You only need to look at
@@ -344,44 +473,6 @@ def seedCups(wp):
 	#printCup(cups['loner'])
 	
 
-def hideColumn(col):
-	for c in col:
-		c.visible = False;
-
-def revealCounters(sub):
-	''' flips num counters to be visible in the given column'''
-
-	print('sub is reveling', sub['tac'], 'counters in position', sub['position']['name'])
-
-	# count how many are unrevealed first
-	unrevealed = sum(c['visible'] == True for c in sub['column'])
-	print(unrevealed)
-
-
-
-def placeSub(positions, sub):
-
-	for p in positions:
-
-		if p['entry'] == None or sub['tac_roll'] > p['entry']:
-
-			# see if we have empty positions
-			try:
-				a = p['subs'].index(None)
-				p['subs'][a] = sub				
-				print('Sub entered position', p['name'], '[ die roll: ', sub['tac_roll'], '>', p['entry'], ']')
-
-				sub['column'] = p['column']
-				sub['position']  = p
-
-				return
-			except ValueError:
-				# silently ignore errors and try the next position
-				pass
-
-
-	return False
-
 
 def attackC2(subs):
 	print('Attacking large convoy (C2)')
@@ -421,9 +512,29 @@ def attackC2(subs):
 			if c.tryAndPlaceSub(sub):
 				break;
 
-	# reveal counters [14.12]
+	# according to wolfpack rules we will do this one sub at a time
 	for sub in subs:
-		sub.revealCounters()
+		# reveal counters [14.12]
+		revealed = sub.revealCounters()
+
+		for r in revealed:
+			if r.type == 'AC':
+				print('Found aircraft!')
+
+			if r.type == 'Event':
+				print('Found event!')
+
+			if r.diligent:
+				print('Found diligent escort')
+				sub.crashDive()
+
+				# we should crash dive here ... 
+
+		# set tdcs [14.14]
+
+		seedTDCCup()
+		sub.attack()
+
 
 	os.printColumn()
 	s.printColumn()
@@ -432,6 +543,8 @@ def attackC2(subs):
 	p.printColumn()
 	op.printColumn()
 
+	# 
+
 
 
 if __name__ == '__main__':
@@ -439,9 +552,9 @@ if __name__ == '__main__':
 	seedTDCCup()
 
 	# search and contact phase here
-	sub1 = Sub(3, 0)
-	sub2 = Sub(3, 1)
-	sub3 = Sub(3, 2)
-	sub4 = Sub(2, 2)
-	sub5 = Sub(3, -1)
+	sub1 = Sub('U-110', 3, 4, 0)
+	sub2 = Sub('U-112', 3, 4, 1)
+	sub3 = Sub('U-113', 3, 4, 2)
+	sub4 = Sub('U-114', 2, 4, 2)
+	sub5 = Sub('U-115', 3, 4, -1)
 	attackC2([sub1, sub2, sub3, sub4, sub5])
