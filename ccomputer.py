@@ -1,6 +1,10 @@
 import random
 
 cups = {}
+torp = -1
+
+tdcCup = []
+
 
 def getAircraft(nation, strength):
 	ac = {'nation': nation, 'strength':strength, 'type':'AC'}
@@ -169,6 +173,20 @@ def printCup(cup):
 	for c in cup:
 		print(c)
 
+def seedTDCCup():
+	tdcCup = []
+
+	for i in range(0,5):
+		tdcCup.append(-2)
+		tdcCup.append(2)
+	for i in range(0,10):
+		tdcCup.append(-1)
+		tdcCup.append(1)
+		tdcCup.append(0)
+
+	random.shuffle(tdcCup)
+
+
 # This class provides the functionality we want. You only need to look at
 # this if you want to know how this works. It only needs to be defined
 # once, no need to muck around with its internals.
@@ -230,5 +248,43 @@ def seedCups(wp):
 
 	#printCup(cups['loner'])
 	
+def drawCounters(count, cup):
+
+	if count > len(cup):
+		print('warning, requested draws exceed cup!')
+		count = len(cup)
+
+	c2 = cup;
+	
+	random.shuffle(c2)
+	c2 = c2[0:count]
+
+	return c2
+
+
+def attackC1(subs):
+
+	# fill in the columns
+	innerSTB = drawCounters(6, cups['outer'])
+	innerPRT = drawCounters(6, cups['inner'])
+	outerSTB = drawCounters(6, cups['outer'])
+	outerPRT = drawCounters(6, cups['inner'])
+
+	# print
+	for i in range(0, len(outerSTB)):
+		print(outerSTB[i]['type'], innerSTB[i]['type'], innerPRT[i]['type'], outerPRT[i]['type'])
+
+	# place submarines
+
+
+	pass
+
+
 if __name__ == '__main__':
-	seedCups(3)
+	seedCups(1)
+	seedTDCCup()
+
+	# search and contact phase here
+	sub = {'skipper':0, 'tac':6}
+
+	attackC1([sub])
