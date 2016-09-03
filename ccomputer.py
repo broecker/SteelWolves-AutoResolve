@@ -22,7 +22,10 @@ class Encounter:
 		self.column = None
 
 	def __repr__(self):
-		return self.type + '(' + str(self.tons) + '-' + str(self.defense) + ')'
+		if self.type == 'M':
+			return self.type + str(self.tons) + 't (' + str(self.defense) + '-' + str(self.asw) + ')'
+		else:
+			return self.type + ' (' + str(self.defense) + '-' + str(self.asw) + ')'
 
 	def rollForDamage(self):
 		roll = random.randint(0, 9) + torpvalue
@@ -84,7 +87,7 @@ class Encounter:
 				result = 'sunk'
 
 
-		print('Rolling damage for', self, ':', roll, result)
+		print('Rolling damage for', self, ':', roll, '(', torpvalue, 'torp value) ->', result)
 
 
 		if result == 'damage':
@@ -248,10 +251,18 @@ class Sub:
 		tdcCount = min(len(revealed), self.tacRating)
 
 
-		print('Sub', self.name, 'has', len(revealed), 'potential targets, placing', tdcCount, 'TDC markers')
+		print('Sub', self.name, 'has', len(revealed), 'potential targets, placing', tdcCount, 'TDC markers, tactical rating:', self.tacRating)
 		
-		# sort them by tonnage
-		revealed.sort(key=lambda x: x.tons, reverse=True)
+
+
+		# sorts targets by tonnage and if they are damaged
+		def getTargetPriority(tgt):
+			p = tgt.tons;
+			if tgt.damaged:
+				p += int(tgt.tons/2)
+			return p
+
+		revealed.sort(key=getTargetPriority, reverse=True)
 		revealed = revealed[0:tdcCount]
 
 		# set TDC markers [14.14]
@@ -733,5 +744,5 @@ if __name__ == '__main__':
 	sub4 = Sub('U-114', 4, 2, 2, 2)
 	sub5 = Sub('U-115', 4, 2, 2, 0)
 
-	attackC2([sub1])
+	attackC2([sub1, sub2])
 	#attackC2([sub1, sub2, sub3, sub4, sub5])
