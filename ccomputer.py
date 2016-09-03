@@ -367,13 +367,74 @@ def getAM(nation):
 def getMerchant(nation, hvy):
 	m = Encounter('M', nation, 0, 0, 0);
 
-	MAX_MERCHANT_TONNAGE = 15;
+
+	try:
+		a = getMerchant._light
+
+	except AttributeError:
+
+		# lgt merchant distribution
+		# 8x 1t 0-0
+		# 16x 2t 0-0/1-0
+		# 9x 3t 0-0/1-0
+		# 20x 4t 1-0
+		# 35x 5 1-0/3-0	
+
+		# stored as weight-defense
+		getMerchant._light = []
+		for i in range(0,8):
+			getMerchant._light.append((1, 0))
+		for i in range(0,16):
+			getMerchant._light.append((2,0))
+		for i in range(0,9):
+			getMerchant._light.append((3,random.randint(0,1)))
+		for i in range(0,20):
+			getMerchant._light.append((4,1))
+		for i in range(0,35):
+			getMerchant._light.append((5,random.randint(1,3)))
+		random.shuffle(getMerchant._light)
+
+
+
+		# hvymerchant distribution:
+		# 14x 6t 0-0/2-0
+		# 16x 7t 1-0/2-0
+		# 11x 8t 2-0
+		# 9x 9t 3-0
+		# 5x 10t 3-0
+		# 2x 11t 3-0
+		# 2x 12t 3-0
+		# 14t 3-0
+		# 17t 3-0
+		# 20t 4-0
+		getMerchant._heavy =[]
+		for i in range(0, 14):
+			getMerchant._heavy.append((6,random.randint(0,2)))
+		for i in range(0, 16):
+			getMerchant._heavy.append((7,random.randint(1,2)))
+		for i in range(0,11):
+			getMerchant._heavy.append((8,2))
+		for i in range(0,9):
+			getMerchant._heavy.append((9,3))
+		for i in range(0,5):
+			getMerchant._heavy.append((10,3))
+		getMerchant._heavy.append((11,3))
+		getMerchant._heavy.append((11,3))
+		getMerchant._heavy.append((12,3))
+		getMerchant._heavy.append((12,3))
+		getMerchant._heavy.append((14,3))
+		getMerchant._heavy.append((17,3))
+		getMerchant._heavy.append((20,4))
+		random.shuffle(getMerchant._heavy)
+
 	if hvy == True:
-		m.tons = random.randint(6, MAX_MERCHANT_TONNAGE)
-		m.defense = random.randint(1,3)
+		s = random.choice(getMerchant._heavy)
+		m.tons = s[0]
+		m.defense = s[1]
 	else:
-		m.tons = random.randint(2, 5)
-		m.defense = random.randint(0,2)
+		s = random.choice(getMerchant._light)
+		m.tons = s[0]
+		m.defense = s[1]
 	return m;
 
 def getSV(nation, tons):
