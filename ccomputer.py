@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 import random
 
 cups = {}
@@ -73,6 +74,7 @@ class Column:
 
 			result += self.revealAll();
 		else:
+			n = int(n)
 			revealed = random.sample(self.targets, n)
 			for r in revealed:
 				r.visible = True
@@ -118,17 +120,18 @@ class Column:
 
 
 class Sub:
-	def __init__(self, name, tac, attack, skipper):
+	def __init__(self, name, attack, defense, tactical, skipper):
 		self.name = name
-		self.tacRating = tac
+		self.attackRating = attack
+		self.defenseRating = defense
+		self.tacRating = tactical
 		self.skipper = skipper
 		self.crashDiveRating = 3
 		self.inexperienced = False
 		self.spotted = False
-		self.attackRating = attack
 
 	def __repr__(self):
-		return self.name + '(' + str(self.tacRating) + ')'
+		return self.name + '(' + str(self.attackRating) + '-' + str(self.defenseRating) + '-' + str(self.tacRating) + ')'
 
 	def performTacRoll(self):
 		self.tac_roll = random.randint(0,9) + self.tacRating + self.skipper
@@ -200,8 +203,8 @@ class Sub:
 				damageMod = -1
 
 			print('Combat vs', t)
-			print('Attack :', attackValue, '[', self.attackRating, 'attack,',self.skipper,'skipper,',torpvalue,' torp rating]')
-			print('Defense:', aswValue, '[', aswValue, 'ASW,', t.tdc,'TDC,', columnMod, 'column mod,',damageMod, ' damaged]')
+			print('Attack :', attackValue, '[', self.attackRating, 'attack',self.skipper,'skipper',torpvalue,' torp rating]')
+			print('Defense:', aswValue, '[', aswValue, 'ASW', t.tdc,'TDC', columnMod, 'column mod',damageMod, ' damaged]')
 			aswValue = aswValue + t.tdc + columnMod + damageMod
 
 
@@ -395,14 +398,19 @@ def printCup(cup):
 		print(c)
 
 def seedTDCCup():
-	cups['tdc'] = []
+	cups['tdc'] = [4, -4]
 
-	for i in range(0,5):
+	for i in range(0, 3):
+		cups['tdc'].append(3)
+		cups['tdc'].append(-3)
+
+	for i in range(0,7):
 		cups['tdc'].append(-2)
 		cups['tdc'].append(2)
-	for i in range(0,10):
+	for i in range(0,8):
 		cups['tdc'].append(-1)
 		cups['tdc'].append(1)
+	for i in range(0, 10):
 		cups['tdc'].append(0)
 
 	random.shuffle(cups['tdc'])
@@ -552,9 +560,9 @@ if __name__ == '__main__':
 	seedTDCCup()
 
 	# search and contact phase here
-	sub1 = Sub('U-110', 3, 4, 0)
-	sub2 = Sub('U-112', 3, 4, 1)
-	sub3 = Sub('U-113', 3, 4, 2)
-	sub4 = Sub('U-114', 2, 4, 2)
-	sub5 = Sub('U-115', 3, 4, -1)
+	sub1 = Sub('U-110', 3, 2, 2, 1)
+	sub2 = Sub('U-112', 4, 2, 2, 1)
+	sub3 = Sub('U-113', 4, 2, 2, 2)
+	sub4 = Sub('U-114', 4, 2, 2, 2)
+	sub5 = Sub('U-115', 4, 2, 2, 0)
 	attackC2([sub1, sub2, sub3, sub4, sub5])
