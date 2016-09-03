@@ -6,12 +6,15 @@ torpvalue = -1
 bdienst = 0
 
 
+
+
 class Encounter:
-	def __init__(self, type, nation, tons, defense):
+	def __init__(self, type, nation, tons, defense, asw):
 		self.type = type
 		self.nation = nation
 		self.tons = tons
 		self.defense = defense
+		self.asw = asw
 		self.visible = False
 		self.diligent = False
 		self.validTarget = True
@@ -20,6 +23,74 @@ class Encounter:
 
 	def __repr__(self):
 		return self.type + '(' + str(self.tons) + '-' + str(self.defense) + ')'
+
+	def rollForDamage(self):
+		roll = random.randint(0, 9) + torpvalue
+		result = 'none'
+
+		if self.tons <= 4:
+			if roll == 1:
+				result = 'damage'
+			if roll > 1:
+				result = 'sunk'
+
+		if self.tons > 4 and self.tons < 10:
+			if roll == 2:
+				result = 'damage'
+			if roll > 2:
+				result = 'sunk'
+
+			if roll == 7:
+				# special case
+				
+
+		if self.tons > 9 and self.tons < 18:
+			if roll > 2:
+				result = 'damage'
+			if roll > 4:
+				result = 'sunk'
+
+		if self.tons > 17 and self.tons < 29:
+			if roll > 3:
+				result = 'damage'
+			if roll > 5:
+				result = 'sunk'
+
+		if self.tons > 28 and self.tons < 37:
+			if roll > 4:
+				result = 'damage'
+			if roll > 6:
+				result = 'sunk'
+
+		if self.tons > 36 and self.tons < 56:
+			if roll > 5:
+				result = 'damage'
+			if roll > 7:
+				result = 'sunk'
+
+		if self.tons > 55:
+			if roll > 6:
+				result = 'damage'
+			if roll == 9:
+				result = 'sunk'
+
+
+		print('Rolling damage for', self, ':', roll, result)
+
+
+		if result == 'damage':
+			self.damaged = True
+
+		if result == 'sunk':
+			#remove from column etc 
+
+			if self.column:
+				i = self.column.targets.index(self)
+				self.column.targets[i] = None
+				self.column = None
+
+		return result
+
 
 class Column:
 	def __init__(self, name, entry, max_subs):
@@ -84,7 +155,7 @@ class Column:
 		return result
 
 	def getASWValue(self):
-		return sum(n.defense for n in self.targets if (n.visible and n.validTarget))
+		return sum(n.asw for n in self.targets if (n.visible and n.validTarget))
 
 
 	def getVisibleTargets(self):
@@ -109,10 +180,15 @@ class Column:
 
 		counters = []
 		for c in self.targets:
-			if c.visible:
-				counters.append(c.type)
+
+			if c == None:
+				counters.append('  ')
 			else:
-				counters.append('**')
+
+				if c.visible:
+					counters.append(c.type)
+				else:
+					counters.append('**')
 
 		subs = [s for s in self.sub_positions]
 
@@ -152,16 +228,22 @@ class Sub:
 		
 	def attack(self):
 
+		combatResult = {'tons':0, 'sunk':0, 'damaged':0, 'own':'okay'}
+
 		# get revealed targets in the current and adjacent columns
 		revealed = self.column.getVisibleTargets()
 		for a in self.column.adjacent:
 			revealed += a.getVisibleTargets()
 
-		print('Sub', self.name, 'has', len(revealed), 'potential targets, placing', self.tacRating, 'TDC markers')
+
+		tdcCount = min(len(revealed), self.tacRating)
+
+
+		print('Sub', self.name, 'has', len(revealed), 'potential targets, placing', tdcCount, 'TDC markers')
 		
 		# sort them by tonnage
 		revealed.sort(key=lambda x: x.tons, reverse=True)
-		revealed = revealed[0:self.tacRating]
+		revealed = revealed[0:tdcCount]
 
 		# set TDC markers [14.14]
 		for r in revealed:
@@ -217,6 +299,15 @@ class Sub:
 				print('Diff:',diff,'Roll:', roll, 'Target hit')
 
 				# consult attack results table here
+				result = t.rollForDamage()
+
+				if result == 'sunk':
+					combatResult['sunk'] += 1
+					combatResult['tons'] += t.tons
+
+				if result == 'damage':
+					combatResult['damaged'] += 1
+ 
 
 
 			else:
@@ -233,49 +324,54 @@ class Sub:
 
 
 
+		return combatResult
+
+
 def getEvent(type) : 
-	e = Encounter(type, None, None, None);
+	e = Encounter(type, None, None, None, None);
 	e.validTarget = False;
 	return e
 
-def getAircraft(nation, strength):
-	ac = Encounter('AC', nation, None, strength);
+def getAircraft(nation, asw):
+	ac = Encounter('AC', nation, None, None, asw);
 	ac.validTarget = False
 	return ac
 
-def getWarship(type, name, tons, defense):
-	ws = Encounter(type, 'british', tons, defense)
+def getWarship(type, name, tons, defense, asw):
+	ws = Encounter(type, 'british', tons, defense, asw)
 	ws.name = name
 	return ws
 
 def getDD(nation, tons, diligent):
-	dd = Encounter('DD', nation, tons, 3)
+	dd = Encounter('DD', nation, tons, 7, 1)
 	dd.diligent = diligent
 	return dd
 
 def getES(nation, diligent):
-	es = Encounter('ES', nation, 2, 2)
+	es = Encounter('ES', nation, 2, 2, 1)
 	es.diligent = diligent
 	return es
 
 def getAM(nation):
-	return Encounter('AM', nation, 2, 2)
+	return Encounter('AM', nation, 2, 2, 1)
 	
 def getMerchant(nation, hvy):
-	m = Encounter('M', nation, 0, 0);
+	m = Encounter('M', nation, 0, 0, 0);
 
-	MAX_MERCHANT_TONNAGE = 10;
+	MAX_MERCHANT_TONNAGE = 15;
 	if hvy == True:
 		m.tons = random.randint(6, MAX_MERCHANT_TONNAGE)
+		m.defense = random.randint(1,3)
 	else:
 		m.tons = random.randint(2, 5)
+		m.defense = random.randint(0,2)
 	return m;
 
 def getSV(nation, tons):
-	return Encounter('SV', nation, tons, 0)
+	return Encounter('SV', nation, tons, 0, 0)
 
 def getFV():
-	return Encounter('FV', 'british', 1, 0);
+	return Encounter('FV', 'british', 1, 0, 0);
 
 def getMerchants(count, nation, heavy):
 	ms = []
@@ -316,17 +412,17 @@ def seedCup(config):
 
 	# convoy/loner warships [12, 33]
 	if config[12]:
-		cup.append(getWarship('CV', 'Courageous', 20, 6))
+		cup.append(getWarship('CV', 'Courageous', 27, 4, 0))
 	if config[13]:
-		cup.append(getWarship('CVE', 'Avenger', 15, 4))
+		cup.append(getWarship('CVE', 'Avenger', 15, 4, 0))
 	if config[14]:
-		cup.append(getWarship('CV', 'Audacity', 20, 6))
+		cup.append(getWarship('CV', 'Audacity', 20, 6, 1))
 	if config[15]:
-		cup.append(getWarship('CA', 'Malaya', 10, 8))
+		cup.append(getWarship('CA', 'Malaya', 10, 8, 0))
 	if config[16]:
-		cup.append(getWarship('CA', 'Ramilles', 10, 8))
+		cup.append(getWarship('CA', 'Ramilles', 10, 8, 1))
 	if config[17]:
-		cup.append(getWarship('CL', 'D 6t', 6, 4))
+		cup.append(getWarship('CL', 'D 6t', 6, 4, 1))
 
 	if config[18]:
 		cup.append(getAM('british'))
@@ -342,7 +438,7 @@ def seedCup(config):
 
 	cup += getDDs(config[28], 'french', 2, False)
 	if config[29]:
-		cup.append(Encounter('TB', 'french', 1, 1))
+		cup.append(Encounter('TB', 'french', 1, 1, 1))
 
 	cup += getDDs(config[30], 'us', 1, False)
 	cup += getDDs(config[31], 'us', 2, False)
@@ -374,7 +470,7 @@ def seedCup(config):
 	cup += getMerchants(config[51], 'us/brazil/soviet', False)
 	
 	if config[52]:
-		cup.append(Encounter('CM', 'british', 7, 4))
+		cup.append(Encounter('CM', 'british', 7, 4, 1))
 
 
 	if config[53] > 0:
@@ -484,6 +580,7 @@ def seedCups(wp):
 
 def attackC2(subs):
 	print('Attacking large convoy (C2)')
+	result = {}
 
 	# fill in columns [13.24]
 	os = Column('Outer Starboard', None, 3)
@@ -541,7 +638,7 @@ def attackC2(subs):
 		# set tdcs [14.14]
 
 		seedTDCCup()
-		sub.attack()
+		result = sub.attack()
 
 
 	os.printColumn()
@@ -565,4 +662,6 @@ if __name__ == '__main__':
 	sub3 = Sub('U-113', 4, 2, 2, 2)
 	sub4 = Sub('U-114', 4, 2, 2, 2)
 	sub5 = Sub('U-115', 4, 2, 2, 0)
-	attackC2([sub1, sub2, sub3, sub4, sub5])
+
+	attackC2([sub1])
+	#attackC2([sub1, sub2, sub3, sub4, sub5])
