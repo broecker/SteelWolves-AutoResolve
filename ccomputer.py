@@ -42,7 +42,16 @@ class Encounter:
 
 			if roll == 7:
 				# special case
-				
+				roll2 = random.randint(0, 9)
+				if roll2 == 8:
+					print('IMPLEMENT_ME: Sub damaged')
+				if roll2 == 9:
+					r3 = random.randint(0, 9)
+					if r3 >= 7:
+						print('IMPLEMENT_ME: Sub sunk')
+					else:
+						print('IMPLEMENT_ME: Sub damaged RTB')
+
 
 		if self.tons > 9 and self.tons < 18:
 			if roll > 2:
