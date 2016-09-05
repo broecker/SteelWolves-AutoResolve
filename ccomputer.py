@@ -256,6 +256,13 @@ class Convoy:
 	def __init__(self, type):
 		self.columns = []
 
+
+
+		if type == 'C1':
+			print('not yet implemented')
+
+
+
 		if type == 'C2':
 			# fill in columns [13.24]
 			os = Column(self, 'Outer Starboard', None, 3)
@@ -281,9 +288,6 @@ class Convoy:
 			cp.seed(cups['center'], 5)
 			p.seed(cups['inner'], 5)
 			op.seed(cups['outer'], 5) 
-
-		if type == 'C1':
-			print('C1 not yet implemented')
 
 		if type == 'Loner':
 			print('Loner not yet implemented')
@@ -454,7 +458,7 @@ class CombatResult:
 			status = 'spotted'
 		if self.subDamaged:
 			status = 'damaged'
-		if self.RTB:
+		if self.subRTB:
 			status += ', RTB'
 		if self.subSunk:
 			status = 'sunk'
@@ -909,19 +913,18 @@ def seedCups(wp):
 	
 
 
-def attackC2(subs):
+def attackC2(count):
 	print('Attacking large convoy (C2)')
-	result = {}
 
-	c2 = Convoy('C2')
+	results = []
+	for i in range(0, count):
 
 
-	# roll for each sub [14.11]
-	for sub in subs:
+		c2 = Convoy('C2')
+
+		sub = Sub('U-' + str(i), 3, 2, 2, 1)
 		c2.placeSub(sub)
 
-	# according to wolfpack rules we will do this one sub at a time
-	for sub in subs:
 		# reveal counters [14.12]
 		revealed = sub.revealCounters()
 
@@ -945,11 +948,14 @@ def attackC2(subs):
 		seedTDCCup()
 		result = sub.attack(c2)
 		result = c2.counterattack(sub, False, result)
+		results.append(result)
 
 
+	#c2.printColumns()
+	#
 
-	c2.printColumns()
-	# 
+	for r in results:
+		r.printSummary() 
 
 
 
@@ -957,12 +963,4 @@ if __name__ == '__main__':
 	seedCups(1)
 	seedTDCCup()
 
-	# search and contact phase here
-	sub1 = Sub('U-110', 3, 2, 2, 1)
-	sub2 = Sub('U-112', 4, 2, 2, 1)
-	sub3 = Sub('U-113', 4, 2, 2, 2)
-	sub4 = Sub('U-114', 4, 2, 2, 2)
-	sub5 = Sub('U-115', 4, 2, 2, 0)
-
-	attackC2([sub1, sub2])
-	#attackC2([sub1, sub2, sub3, sub4, sub5])
+	attackC2(1000)
