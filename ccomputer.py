@@ -28,7 +28,7 @@ import math
 cups = {}
 
 # global values
-torpvalue = -1
+torpvalue = 0
 bdienst = 0
 asw_value = 0
 
@@ -441,6 +441,7 @@ class Convoy:
 
 
 class CombatResult:
+	'''Describes and stores the outcome of a single sub vs convoy attack'''
 	def __init__(self, sub):
 		self.sub = sub
 		self.sunk = 0
@@ -463,6 +464,8 @@ class CombatResult:
 		if self.subSunk:
 			status = 'sunk'
 		print('Sub',self.sub, 'sunk', self.sunk, 'ships for', self.tons, 'tons. Status:',status)
+
+
 
 class Sub:
 	def __init__(self, name, attack, defense, tactical, skipper):
@@ -533,7 +536,7 @@ class Sub:
 		# split combat value in 4's and assign targets [14.15]
 		cv = self.attackRating
 		tdcIndex = 0
-		while cv > 0:
+		while cv > 0 and len(revealed) > 0:
 			# place a TDC on a counter
 			
 			r = revealed[tdcIndex]
@@ -912,6 +915,89 @@ def seedCups(wp):
 	#printCup(cups['loner'])
 	
 
+# from http://stackoverflow.com/questions/15389768/standard-deviation-of-a-list
+def mean(data):
+    """Return the sample arithmetic mean of data."""
+    n = len(data)
+    if n < 1:
+        raise ValueError('mean requires at least one data point')
+    return sum(data)/n # in Python 2 use sum(data)/float(n)
+
+def _ss(data):
+    """Return sum of square deviations of sequence data."""
+    c = mean(data)
+    ss = sum((x-c)**2 for x in data)
+    return ss
+
+def pstdev(data):
+    """Calculates the population standard deviation."""
+    n = len(data)
+    if n < 2:
+        raise ValueError('variance requires at least two data points')
+    ss = _ss(data)
+    pvar = ss/n # the population variance
+    return pvar**0.5
+
+
+def summarizeResults(results):
+	subsSunk = 0
+	subsDamaged = 0
+	subsSpotted = 0
+	subsRTB = 0
+
+	shipsSunk = []
+	shipsDamaged = []
+	shipsTonnage = []
+
+	for r in results:
+		if r.subSunk:
+			subsSunk += 1
+		if r.subSpotted:
+			subsSpotted += 1
+		if r.subDamaged:
+			subsDamaged += 1
+		if r.subRTB:
+			subsRTB += 1
+
+		shipsSunk.append(r.sunk)
+		shipsDamaged.append(r.damaged)
+		shipsTonnage.append(r.tons)
+
+
+	shipsSunk.sort()
+	shipsTonnage.sort()
+
+	minSunk = 100
+	maxSunk = 0
+	meanSunk = 0.0
+	for s in shipsSunk:
+		meanSunk += s
+		minSunk = min(minSunk, s)
+		maxSunk = max(maxSunk, s)
+
+	devSunk = pstdev(shipsSunk)
+	meanSunk /= len(shipsSunk)
+
+	minTons = 100
+	maxTons = 0
+	meanTons = 0.0
+	for t in shipsTonnage:
+		meanTons += t
+		minTons = min(minTons, t)
+		maxTons = max(maxTons, t)
+
+	devTons = pstdev(shipsTonnage)
+	meanTons /= len(shipsTonnage)
+
+
+	print('Subs spotted:', subsSpotted, '/', len(results))
+	print('Subs damaged:', subsDamaged, '/', len(results))
+	print('Subs sunk:', subsSunk, '/', len(results))
+	print('Subs RTB:', subsRTB, '/', len(results))
+
+	print('Ships sunk:', meanSunk, '[', minSunk, '-', maxSunk, '], mean', meanSunk, '/', devSunk)
+	print('Ships tonnage:', meanTons, '[', minTons, '-', maxTons, '] mean', meanTons, '/', devTons)
+
 
 def attackC2(count):
 	print('Attacking large convoy (C2)')
@@ -919,10 +1005,12 @@ def attackC2(count):
 	results = []
 	for i in range(0, count):
 
+		if i % 50 == 0:
+			seedCups(1)
 
 		c2 = Convoy('C2')
 
-		sub = Sub('U-' + str(i), 3, 2, 2, 1)
+		sub = Sub('U-' + str(i), 2, 1, 2, 0)
 		c2.placeSub(sub)
 
 		# reveal counters [14.12]
@@ -957,10 +1045,10 @@ def attackC2(count):
 	for r in results:
 		r.printSummary() 
 
+	summarizeResults(results)
 
 
 if __name__ == '__main__':
-	seedCups(1)
 	seedTDCCup()
 
-	attackC2(1000)
+	attackC2(100)
