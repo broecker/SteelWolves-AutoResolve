@@ -28,7 +28,7 @@ import math
 cups = {}
 
 # global values
-torpvalue = 0
+torpvalue = -1
 bdienst = 0
 asw_value = 0
 
@@ -165,12 +165,14 @@ class Column:
 
 	def hideAll(self):
 		for t in self.targets:
-			t.visible = False
-			t.column = self
+			if t:
+				t.visible = False
+				t.column = self
 
 	def revealAll(self):
 		for t in self.targets:
-			t.visible = True
+			if t:
+				t.visible = True
 
 		return self.targets
 
@@ -255,6 +257,7 @@ class Convoy:
 	'''Convoys of different size hold different columns'''
 	def __init__(self, type):
 		self.columns = []
+		self.straggle_level = 0
 
 
 
@@ -367,6 +370,8 @@ class Convoy:
 			if asw > 8:
 				asw = 8
 
+			asw = int(asw)
+
 			print('Counterattack roll', roll, 'with asw', asw)
 			# counterattack table [14.2C]
 			# format: [asw] ([spotted], [damaged], [damagedRTB], [damagedRTB+], [sunk-], [sunk])
@@ -401,7 +406,7 @@ class Convoy:
 					result.subDamaged = True
 					result.subRTB = True
 					sub.damaged = True
-					sub.RTB = True
+					sub.rtb = True
 					print('Sub', sub, 'damaged RTB')
 
 				if roll in row[3]:
@@ -414,7 +419,7 @@ class Convoy:
 						result.subDamaged = True
 						result.subRTB = True
 						sub.damaged = True
-						sub.RTB = True
+						sub.rtb = True
 						print('Sub', sub, 'damaged RTB')
 
 
@@ -428,7 +433,7 @@ class Convoy:
 						result.subDamaged = True
 						result.subRTB = True
 						sub.damaged = True
-						sub.RTB = True			
+						sub.rtb = True			
 						print('Sub', sub, 'damaged RTB')
 
 				if roll in row[5]:
@@ -448,22 +453,24 @@ class CombatResult:
 		self.tons = 0
 		self.damaged = 0
 
-		self.subDamaged = False
-		self.subSunk = False
-		self.subSpotted = False
-		self.subRTB = False
+		self.subDamaged = 0
+		self.subSunk = 0
+		self.subSpotted = 0
+		self.subRTB = 0
 
 	def printSummary(self):
-		status = 'okay'
-		if self.subSpotted:
-			status = 'spotted'
-		if self.subDamaged:
-			status = 'damaged'
-		if self.subRTB:
-			status += ', RTB'
-		if self.subSunk:
-			status = 'sunk'
-		print('Sub',self.sub, 'sunk', self.sunk, 'ships for', self.tons, 'tons. Status:',status)
+		print('Sub',self.sub, 'sunk', self.sunk, 'ships for', self.tons, 'tons. Status:', self.subDamaged, 'damaged', self.subSpotted, 'spotted', self.subSunk, 'sunk', self.subRTB, 'RTB')
+
+	def combine(self, results):
+
+		for r in results:
+			self.sunk += r.sunk
+			self.tons += r.tons 
+			self.damaged += r.damaged
+			self.subDamaged += r.subDamaged
+			self.subSunk += r.subSunk
+			self.subSpotted += r.subSpotted
+			self.subRTB += r.subRTB
 
 
 
@@ -478,6 +485,7 @@ class Sub:
 		self.inexperienced = False
 		self.spotted = False
 		self.damaged = 0
+		self.rtb = False
 
 	def __repr__(self):
 		return self.name + '(' + str(self.attackRating) + '-' + str(self.defenseRating) + '-' + str(self.tacRating) + ')'
@@ -550,7 +558,7 @@ class Sub:
 		# 14.15 targeted escorts
 
 		# 14.16 attack
-		attackValue = self.attackRating + self.skipper + torpvalue
+		attackValue = self.attackRating + self.skipper + torpvalue + convoy.straggle_level
 	
 		for t in targets:
 			aswValue = self.column.getASWValue()
@@ -565,7 +573,7 @@ class Sub:
 				damageMod = -1
 
 			print('Combat vs', t)
-			print('Attack :', attackValue, '[', self.attackRating, 'attack',self.skipper,'skipper',torpvalue,' torp rating]')
+			print('Attack :', attackValue, '[', self.attackRating, 'attack',self.skipper,'skipper',torpvalue,' torp rating', convoy.straggle_level, 'convoy straggle]')
 			print('Defense:', aswValue, '[', aswValue, 'ASW', t.tdc,'TDC', columnMod, 'column mod',damageMod, ' damaged]')
 			aswValue = aswValue + t.tdc + columnMod + damageMod
 
@@ -602,6 +610,13 @@ class Sub:
 		return result
 
 
+class Wolfpack:
+	def __init__(self, name, subs):
+		self.subs = subs 
+		self.name = name 
+	def __repr__(self):
+		return 'Wolfpack ' + self.name +'(' + str(len(self.subs)) + ' boats)'
+
 
 
 def getEvent(type) : 
@@ -620,7 +635,7 @@ def getWarship(type, name, tons, defense, asw):
 	return ws
 
 def getDD(nation, tons, diligent):
-	dd = Encounter('DD', nation, tons, 7, 1)
+	dd = Encounter('DD', nation, tons, random.randint(6,7), random.randint(1,3))
 	dd.diligent = diligent
 	return dd
 
@@ -938,7 +953,6 @@ def pstdev(data):
     pvar = ss/n # the population variance
     return pvar**0.5
 
-
 def summarizeResults(results):
 	subsSunk = 0
 	subsDamaged = 0
@@ -999,44 +1013,69 @@ def summarizeResults(results):
 	print('Ships tonnage:', meanTons, '[', minTons, '-', maxTons, '] mean', meanTons, '/', devTons)
 
 
-def attackC2(count):
+def attackC2():
 	print('Attacking large convoy (C2)')
 
-	results = []
-	for i in range(0, count):
+	subcount = 5
 
-		if i % 50 == 0:
-			seedCups(1)
+	results = []
+	seedCups(1)
+
+	for i in range(0, 100):
 
 		c2 = Convoy('C2')
+		c2.straggle_level = 1
 
-		sub = Sub('U-' + str(i), 2, 1, 2, 0)
-		c2.placeSub(sub)
+		subs = []
+		for s in range(0, subcount):
+			sub = Sub('U-' + str(i) + '.' + str(s), 5, 3, 3, 0)
+			c2.placeSub(sub)
+			subs.append(sub)
 
-		# reveal counters [14.12]
-		revealed = sub.revealCounters()
 
-		for r in revealed:
-			if r and r.type == 'AC':
-				print('Found aircraft!')
+		attackResults =[]
+		for sub in subs:
+			# reveal counters [14.12]
+			revealed = sub.revealCounters()
 
-			if r and r.type == 'Event':
-				print('Found event!')
+			for r in revealed:
+				if r and r.type == 'AC':
+					print('Found aircraft!')
 
-				# ignore events?
+				if r and r.type == 'Event':
+					print('Found event!')
 
-			if r and r.diligent:
-				print('Found diligent escort')
-				sub.crashDive()
+					# ignore events?
 
-				# we should crash dive here ... 
-				# and roll for damage
+				if r and r.diligent:
+					print('Found diligent escort')
+					sub.crashDive()
 
-		# set tdcs [14.14]
-		seedTDCCup()
-		result = sub.attack(c2)
-		result = c2.counterattack(sub, False, result)
-		results.append(result)
+					# we should crash dive here ... 
+					# and roll for damage
+
+			# set tdcs [14.14]
+			seedTDCCup()
+			result = sub.attack(c2)
+			result = c2.counterattack(sub, False, result)
+			
+
+			attackResults.append(result)
+
+		if len(attackResults) == 1:
+			results += attackResults
+		else:
+			# combine all attacks into one result
+			cr = CombatResult(Wolfpack('WF' + str(i), subs))
+			cr.combine(attackResults)
+			results.append(cr)
+
+
+
+		# second round of combat
+		# first, remove all damaged, rtb subs
+		subs = [s for s in subs if not (s.rtb or s.damaged or s.spotted)]
+
 
 
 	#c2.printColumns()
@@ -1051,4 +1090,4 @@ def attackC2(count):
 if __name__ == '__main__':
 	seedTDCCup()
 
-	attackC2(100)
+	attackC2()
