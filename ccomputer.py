@@ -86,11 +86,11 @@ class Encounter:
 			if roll == 9:
 				result = 'sunk'
 
-
-		print('Rolling damage for', self, ':', roll, '(', torpvalue, 'torp value) ->', result)
-
-
 		if result == 'damage':
+
+			if self.damaged:
+				result = 'sunk'
+			
 			self.damaged = True
 
 		if result == 'sunk':
@@ -101,16 +101,22 @@ class Encounter:
 				self.column.targets[i] = None
 				self.column = None
 
+
+		print('Rolling damage for', self, ':', roll, '(', torpvalue, 'torp value) ->', result)
 		return result
 
 
 class Column:
-	def __init__(self, name, entry, max_subs):
+	def __init__(self, convoy, name, entry, max_subs):
+		self.convoy = convoy
 		self.name = name
 		self.targets = []
 		self.entry = entry
 		self.sub_positions = []
 		self.max_subs = max_subs
+
+	def __repr__(self):
+		return self.name + ' (' + str(self.entry) + ')'
 
 	def setAdjacent(self, adj):
 		self.adjacent = adj
@@ -169,7 +175,6 @@ class Column:
 	def getASWValue(self):
 		return sum(n.asw for n in self.targets if (n.visible and n.validTarget))
 
-
 	def getVisibleTargets(self):
 		return [t for t in self.targets if t.visible and t.validTarget]		
 
@@ -206,6 +211,91 @@ class Column:
 
 		print(self.name, counters, subs)
 
+class Convoy:
+	def __init__(self, type):
+		self.columns = []
+
+		if type == 'C2':
+			# fill in columns [13.24]
+			os = Column(self, 'Outer Starboard', None, 3)
+			s = Column(self, 'Starboard', 7, 2)
+			cs = Column(self, 'Center Starboard', 9, 1)
+			cp = Column(self, 'Center Port', 9, 1)
+			p = Column(self, 'Port', 7, 2)
+			op = Column(self, 'Outer Port', None, 3)
+
+			os.setAdjacent([s])
+			s.setAdjacent([os,cs])
+			cs.setAdjacent([s,cp])
+			cp.setAdjacent([cs, p])
+			p.setAdjacent([cp,op])
+			op.setAdjacent([p])
+
+			self.columns = [os, s, cs, cp, p, op]
+
+
+			os.seed(cups['outer'], 5)
+			s.seed(cups['inner'], 5)
+			cs.seed(cups['center'], 5)
+			cp.seed(cups['center'], 5)
+			p.seed(cups['inner'], 5)
+			op.seed(cups['outer'], 5) 
+
+		if type == 'C1':
+			print('C1 not yet implemented')
+
+		if type == 'Loner':
+			print('Loner not yet implemented')
+
+		if type == 'TF':
+			print('Task Force not yet implemented')
+
+	def printColumns(self):	
+		for c in self.columns:
+			c.printColumn()
+
+
+
+	def placeSub(self, sub):
+		sub.performTacRoll()
+
+
+		# sorted columns by tac entry roll
+		cols = sorted(self.columns, key=lambda x:x.entry)
+		
+		# try and place the sub as close to the center as possible
+		for c in cols:
+			if c.tryAndPlaceSub(sub):
+				break;
+
+
+	def getTotalASWValue(self):
+		a = 0
+		for c in self.columns:
+			a += c.getASWValue()
+
+		return math.ceil(a)
+
+
+	def counterattack(self, sub, result):
+		# 14.2
+		totalASW = self.getTotalASWValue()
+
+		
+
+
+		return result
+
+
+class CombatResult:
+	def __init__(self, sub):
+		self.sub = sub
+		self.sunk = 0
+		self.tons = 0
+		self.damaged = 0
+		self.subDamaged = False
+		self.subSunk = False
+		self.subSpotted = False
 
 class Sub:
 	def __init__(self, name, attack, defense, tactical, skipper):
@@ -238,9 +328,8 @@ class Sub:
 		else:
 			print('Sub', self.name, 'crash dives!')
 		
-	def attack(self):
-
-		combatResult = {'tons':0, 'sunk':0, 'damaged':0, 'own':'okay'}
+	def attack(self, convoy):
+		result = CombatResult(self)
 
 		# get revealed targets in the current and adjacent columns
 		revealed = self.column.getVisibleTargets()
@@ -273,7 +362,7 @@ class Sub:
 
 		targets = []
 
-		# split combat value in 3's and assign targets [14.15]
+		# split combat value in 4's and assign targets [14.15]
 		cv = self.attackRating
 		tdcIndex = 0
 		while cv > 0:
@@ -284,7 +373,7 @@ class Sub:
 			targets.append(r)
 
 			tdcIndex += 1
-			cv -= 3 
+			cv -= 4 
 
 
 		# 14.15 targeted escorts
@@ -319,24 +408,19 @@ class Sub:
 				print('Diff:',diff,'Roll:', roll, 'Target hit')
 
 				# consult attack results table here
-				result = t.rollForDamage()
+				d = t.rollForDamage()
 
-				if result == 'sunk':
-					combatResult['sunk'] += 1
-					combatResult['tons'] += t.tons
+				if d == 'sunk':
+					result.sunk += 1
+					result.tons += t.tons
 
-				if result == 'damage':
-					combatResult['damaged'] += 1
+				if d == 'damage':
+					result.damaged += 1
  
 
 
 			else:
 				print('Diff:',diff,'Roll:', roll, 'Target missed')
-
-
-		# TODO: add plane and ac asw factors  
-
-
 
 		# remove tdc markers again
 		for r in revealed:
@@ -344,7 +428,9 @@ class Sub:
 
 
 
-		return combatResult
+		return result
+
+
 
 
 def getEvent(type) : 
@@ -663,40 +749,12 @@ def attackC2(subs):
 	print('Attacking large convoy (C2)')
 	result = {}
 
-	# fill in columns [13.24]
-	os = Column('Outer Starboard', None, 3)
-	s = Column('Starboard', 7, 2)
-	cs = Column('Center Starboard', 9, 1)
-	cp = Column('Center Port', 9, 1)
-	p = Column('Port', 7, 2)
-	op = Column('Outer Port', None, 3)
-
-	os.setAdjacent([s])
-	s.setAdjacent([os,cs])
-	cs.setAdjacent([s,cp])
-	cp.setAdjacent([cs, p])
-	p.setAdjacent([cp,op])
-	op.setAdjacent([p])
-
-	allColumns = [cs, cp, p, s, os, op]
-
-
-	os.seed(cups['outer'], 5)
-	s.seed(cups['inner'], 5)
-	cs.seed(cups['center'], 5)
-	cp.seed(cups['center'], 5)
-	p.seed(cups['inner'], 5)
-	op.seed(cups['outer'], 5) 
+	c2 = Convoy('C2')
 
 
 	# roll for each sub [14.11]
 	for sub in subs:
-		sub.performTacRoll()
-
-		# try and place the sub as close to the center as possible
-		for c in allColumns:
-			if c.tryAndPlaceSub(sub):
-				break;
+		c2.placeSub(sub)
 
 	# according to wolfpack rules we will do this one sub at a time
 	for sub in subs:
@@ -710,25 +768,23 @@ def attackC2(subs):
 			if r.type == 'Event':
 				print('Found event!')
 
+				# ignore events?
+
 			if r.diligent:
 				print('Found diligent escort')
 				sub.crashDive()
 
 				# we should crash dive here ... 
+				# and roll for damage
 
 		# set tdcs [14.14]
-
 		seedTDCCup()
-		result = sub.attack()
+		result = sub.attack(c2)
+		result = c2.counterattack(sub, result)
 
 
-	os.printColumn()
-	s.printColumn()
-	cs.printColumn()
-	cp.printColumn()
-	p.printColumn()
-	op.printColumn()
 
+	c2.printColumns()
 	# 
 
 
