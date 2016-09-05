@@ -26,13 +26,20 @@ import random
 import math
 
 cups = {}
+
+# global values
 torpvalue = -1
 bdienst = 0
+asw_value = 0
 
+# current ops area
+red_boxes = 4
 
 
 
 class Encounter:
+	'''	Describes a single counter on the convoy display. Can be a ship, 
+		aircraft, event. '''
 	def __init__(self, type, nation, tons, defense, asw):
 		self.type = type
 		self.nation = nation
@@ -131,6 +138,7 @@ class Encounter:
 
 
 class Column:
+	''' A column in the convoy'''
 	def __init__(self, convoy, name, entry, max_subs):
 		self.convoy = convoy
 		self.name = name
@@ -190,7 +198,8 @@ class Column:
 			n = int(n)
 			revealed = random.sample(self.targets, n)
 			for r in revealed:
-				r.visible = True
+				if r:
+					r.visible = True
 
 			result = revealed
 
@@ -243,6 +252,7 @@ class Column:
 		print(self.name, counters, subs)
 
 class Convoy:
+	'''Convoys of different size hold different columns'''
 	def __init__(self, type):
 		self.columns = []
 
@@ -308,11 +318,119 @@ class Convoy:
 		return math.ceil(a)
 
 
-	def counterattack(self, sub, result):
+	def counterattack(self, sub, reattack, result):
 		# 14.2
-		totalASW = self.getTotalASWValue()
+		# totalASW = self.getTotalASWValue()
+
+		# get asw value in current and adjacent columns
+		immediateColumns = [sub.column] + sub.column.adjacent
+		asw = sum(c.getASWValue() for c in immediateColumns)
+
+		# find remote available asw values from aircraft or cvs
+		for c in self.columns:
+			if c not in immediateColumns:
+				for t in c.targets:
+					if t and t.visible and (t.type == 'AC' or t.type == 'CV'):
+						asw += t.asw
+
+		asw += red_boxes
+		asw += asw_value
 
 
+		defense = sub.defenseRating + sub.skipper
+		if sub.inexperienced:
+			defense -= 1
+
+		diff = asw - defense
+		print('Counterattack, red boxes:', red_boxes, 'global asw:', asw_value)
+		print('Total ASW', asw, 'defense', defense, 'diff', diff)
+
+		if diff < 0:
+			print('No counterattack, diff:', diff)
+		else:
+			# counterattack
+			roll = random.randint(0,9)
+			roll += sub.damaged
+			if reattack:
+				roll += 1
+			if sub.spotted:
+				roll += 1
+
+
+			if roll > 12:
+				roll = 12
+
+			if asw > 8:
+				asw = 8
+
+			print('Counterattack roll', roll, 'with asw', asw)
+			# counterattack table [14.2C]
+			# format: [asw] ([spotted], [damaged], [damagedRTB], [damagedRTB+], [sunk-], [sunk])
+			table =	(	([9], [10], [11], [], [], [12]),
+						([8], [9,10], [], [11], [], [12]),
+						([8], [9,10], [], [11], [], [12]),
+						([7], [8,9], [], [10], [], [11,12]),
+						([7], [8,9], [], [10], [], [11,12]),
+						([4,5], [6,7], [8], [9], [10], [11,12]),
+						([4,5], [6,7], [8], [9], [10], [11,12]),
+						([3,4], [5,6], [7], [8], [9],[10,11,12]),
+						([2,3], [4,5], [], [6,7], [8], [9,10,11,12])
+					)
+
+			row = table[asw]
+			
+			if roll < row[0][0]:
+				print('No effect.')
+			else:
+
+				if roll in row[0]:
+					result.subSpotted = True
+					sub.spotted = True
+					print('Sub', sub, 'spotted')
+
+				if roll in row[1]:
+					result.subDamaged = True
+					sub.damaged = True
+					print('Sub', sub, 'damaged')
+
+				if roll in row[2]:
+					result.subDamaged = True
+					result.subRTB = True
+					sub.damaged = True
+					sub.RTB = True
+					print('Sub', sub, 'damaged RTB')
+
+				if roll in row[3]:
+					roll2 = random.randint(0, 9)
+					if roll2 >= 7:
+						result.subSunk = True 
+						sub.sunk = True
+						print('Sub', sub, 'sunk')
+					else:
+						result.subDamaged = True
+						result.subRTB = True
+						sub.damaged = True
+						sub.RTB = True
+						print('Sub', sub, 'damaged RTB')
+
+
+				if roll in row[4]:
+					roll2 = random.randint(0,9)
+					if roll2 >= 4:
+						result.subSunk = True 
+						sub.sunk = True
+						print('Sub', sub, 'sunk')
+					else:
+						result.subDamaged = True
+						result.subRTB = True
+						sub.damaged = True
+						sub.RTB = True			
+						print('Sub', sub, 'damaged RTB')
+
+				if roll in row[5]:
+					result.subSunk = True 
+					sub.sunk = True
+					print('Sub', sub, 'sunk')
 
 
 		return result
@@ -324,9 +442,23 @@ class CombatResult:
 		self.sunk = 0
 		self.tons = 0
 		self.damaged = 0
+
 		self.subDamaged = False
 		self.subSunk = False
 		self.subSpotted = False
+		self.subRTB = False
+
+	def printSummary(self):
+		status = 'okay'
+		if self.subSpotted:
+			status = 'spotted'
+		if self.subDamaged:
+			status = 'damaged'
+		if self.RTB:
+			status += ', RTB'
+		if self.subSunk:
+			status = 'sunk'
+		print('Sub',self.sub, 'sunk', self.sunk, 'ships for', self.tons, 'tons. Status:',status)
 
 class Sub:
 	def __init__(self, name, attack, defense, tactical, skipper):
@@ -338,6 +470,7 @@ class Sub:
 		self.crashDiveRating = 3
 		self.inexperienced = False
 		self.spotted = False
+		self.damaged = 0
 
 	def __repr__(self):
 		return self.name + '(' + str(self.attackRating) + '-' + str(self.defenseRating) + '-' + str(self.tacRating) + ')'
@@ -793,15 +926,15 @@ def attackC2(subs):
 		revealed = sub.revealCounters()
 
 		for r in revealed:
-			if r.type == 'AC':
+			if r and r.type == 'AC':
 				print('Found aircraft!')
 
-			if r.type == 'Event':
+			if r and r.type == 'Event':
 				print('Found event!')
 
 				# ignore events?
 
-			if r.diligent:
+			if r and r.diligent:
 				print('Found diligent escort')
 				sub.crashDive()
 
@@ -811,7 +944,7 @@ def attackC2(subs):
 		# set tdcs [14.14]
 		seedTDCCup()
 		result = sub.attack(c2)
-		result = c2.counterattack(sub, result)
+		result = c2.counterattack(sub, False, result)
 
 
 
