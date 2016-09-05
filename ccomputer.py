@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 import random
+import math
 
 cups = {}
 torpvalue = -1
@@ -173,13 +174,20 @@ class Column:
 		return result
 
 	def getASWValue(self):
-		return sum(n.asw for n in self.targets if (n.visible and n.validTarget))
+		#return sum(n.asw for n in self.targets if (n.visible and n.validTarget and (not n.damaged)))
+		r = 0
+		for n in self.targets:
+			if n and n.visible and n.validTarget and not n.damaged:
+				r += n.asw
+
+		return r
+
 
 	def getVisibleTargets(self):
-		return [t for t in self.targets if t.visible and t.validTarget]		
+		return [t for t in self.targets if t and t.visible and t.validTarget]		
 
 	def countHidden(self):
-		return sum(t.visible == False for t in self.targets)
+		return sum(t.visible == False for t in self.targets if t)
 
 	def tryAndPlaceSub(self, sub):
 		if (self.entry == None or sub.tac_roll > self.entry) and len(self.sub_positions) < self.max_subs:
@@ -281,7 +289,7 @@ class Convoy:
 		# 14.2
 		totalASW = self.getTotalASWValue()
 
-		
+
 
 
 		return result
