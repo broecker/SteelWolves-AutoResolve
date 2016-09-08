@@ -21,7 +21,7 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-
+import sys
 import random
 import math
 
@@ -309,7 +309,7 @@ class Convoy:
 
 
 		# sorted columns by tac entry roll
-		cols = sorted(self.columns, key=lambda x:x.entry)
+		cols = sorted(self.columns, key=lambda x:(x.entry or 0))
 		
 		# try and place the sub as close to the center as possible
 		for c in cols:
@@ -369,7 +369,6 @@ class Convoy:
 
 			if asw > 8:
 				asw = 8
-
 			asw = int(asw)
 
 			print('Counterattack roll', roll, 'with asw', asw)
@@ -544,7 +543,8 @@ class Sub:
 		# split combat value in 4's and assign targets [14.15]
 		cv = self.attackRating
 		tdcIndex = 0
-		while cv > 0 and len(revealed) > 0:
+
+		while cv > 0 and len(revealed) > 0 and tdcIndex < len(revealed):
 			# place a TDC on a counter
 			
 			r = revealed[tdcIndex]
@@ -764,6 +764,7 @@ def seedCup(config):
 
 
 	# convoy/loner warships [12, 33]
+	# note: these values are just placeholders for now
 	if config[12]:
 		cup.append(getWarship('CV', 'Courageous', 27, 4, 0))
 	if config[13]:
@@ -1053,6 +1054,8 @@ def attackC2():
 
 					# we should crash dive here ... 
 					# and roll for damage
+					print('[Warning] Diligent Escort Attack not implemented!')
+
 
 			# set tdcs [14.14]
 			seedTDCCup()
@@ -1087,7 +1090,18 @@ def attackC2():
 	summarizeResults(results)
 
 
+def parseCommandLine():
+	if len(sys.argv) == 1:
+		return
+
+	for c in range(1,len(sys.argv)):
+		v = sys.argv[c]
+
+		print(c)
+
+
 if __name__ == '__main__':
+	parseCommandLine()
 	seedTDCCup()
 
 	attackC2()
