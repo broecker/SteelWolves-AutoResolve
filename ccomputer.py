@@ -33,7 +33,7 @@ bdienst = 0
 asw_value = 0
 
 # current ops area
-red_boxes = 4
+red_boxes = 2
 
 
 
@@ -1014,6 +1014,93 @@ def summarizeResults(results):
 	print('Ships tonnage:', meanTons, '[', minTons, '-', maxTons, '] mean', meanTons, '/', devTons)
 
 
+def createTable(results):
+	'''This method tries to fit the result data with a standard distribution of
+		lots of 2d10 rolls and create a table from it.'''
+	# this is based on a 2d10 distribution:
+	# 2d10 - relative probability
+	# 00 	0.01
+	# 01 	0.02
+	# 02 	0.03
+	# 03 	0.04
+	# 04 	0.05
+	# 05 	0.06
+	# 06 	0.07
+	# 07 	0.08
+	# 08 	0.09
+	# 09 	0.10
+	# 10 	0.09
+	# 11 	0.08
+	# 12 	0.07
+	# 13 	0.06
+	# 14 	0.05
+	# 15 	0.04
+	# 16 	0.03
+	# 17 	0.02
+	# 18 	0.01
+
+	# first, sort the data by tons sunk
+	results = sorted(results, key=lambda r: r.tons)
+
+	tonnage = {}
+
+	for r in results:
+		t = str(r.tons)
+		try:
+			tonnage[t] += 1
+		except KeyError:
+			tonnage[t] = 1
+
+	sortedTons = []
+	for tons, count in tonnage.items():
+		sortedTons.append((int(tons),count))
+	sortedTons = sorted(sortedTons, key=lambda t: t[0])
+
+	minTons = 100
+	maxTons = 0
+
+	minResult = 100
+	maxResult = 0
+
+	allTons = 0
+	allResults = 0
+
+	for st in sortedTons:
+		minTons = min(minTons, st[0])
+		maxTons = max(maxTons, st[0])
+		minResult = min(minResult, st[1])
+		maxResult = max(maxResult, st[1])
+
+		allTons += st[0]
+		allResults += st[1]
+
+	
+	relativeResults = []
+	for st in sortedTons:
+		relativeResults.append((st[0], st[1]/allResults))
+	
+
+	# find the peak
+	relativeResults2 = sorted(relativeResults, key=lambda x:x[1])
+
+	for r in relativeResults2:
+		print(r[0], '%0.2f' % r[1])
+
+
+	print('Items:', len(sortedTons))
+	print('Range:', minTons,'->',maxTons)
+	print('Result range:', minResult, '->', maxResult)
+
+def writeResults(filename, results):
+
+	f = open(filename, 'w')
+	f.write('# name, tgt sunk, tgt tons, subsDmgd, subsSunk, subsSpotted, subsRTB\n')
+	for r in results:
+		f.write(str(r.sub) + ',' + str(r.sunk) + ',' + str(r.tons) + ',' + str(r.subDamaged) + ',' + str(r.subSunk) + ',' + str(r.subSpotted) + ',' + str(r.subRTB) + '\n')
+
+	f.close()
+
+
 def attackC2():
 	print('Attacking large convoy (C2)')
 
@@ -1022,7 +1109,7 @@ def attackC2():
 	results = []
 	seedCups(1)
 
-	for i in range(0, 100):
+	for i in range(0, 2000):
 
 		c2 = Convoy('C2')
 		c2.straggle_level = 1
@@ -1088,7 +1175,8 @@ def attackC2():
 		r.printSummary() 
 
 	summarizeResults(results)
-
+	#writeResults('c2-wp1.csv', results)
+	createTable(results)
 
 def parseCommandLine():
 	if len(sys.argv) == 1:
