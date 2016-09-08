@@ -28,10 +28,13 @@ if __name__ == '__main__':
 	random.seed(0)
 
 	drm = 0
-	dice = 5
+	dice = 2
 	face = 10
 	count = 10000
 	highEnd = int(dice * face * 1.5) 
+
+	trimLeft = False
+	trimRight = True
 
 	rolls = []
 	for i in range(0, highEnd):
@@ -41,7 +44,7 @@ if __name__ == '__main__':
 	for i in range(0,count):
 		roll = 0
 		for d in range(0, dice):
-			roll += random.randint(0, face)
+			roll += random.randint(0, face-1)
 
 		roll += drm
 		roll = max(0, roll)
@@ -57,9 +60,16 @@ if __name__ == '__main__':
 		meanRoll += r
 
 	# trim the right side of the list
-	while rolls[-1] == 0:
-		rolls.pop()
+	if trimRight:
+		while rolls[-1] == 0:
+			rolls.pop()
 
+	# trim the left side of the list
+	offset = 0
+	if trimLeft:
+		while rolls[0] == 0:
+			rolls.pop(0)
+			offset += 1
 
 	print(count, 'rolls of %dd' % dice + '%d' % face + ' with DRM %+d' % drm)
 	for i in range(0, len(rolls)):
@@ -72,4 +82,4 @@ if __name__ == '__main__':
 		if rolls[i] == maxRoll:
 			s += ' <- Peak'
 
-		print("%02d " % i, s)
+		print("%02d " % (i + offset), s)
