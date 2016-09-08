@@ -1075,21 +1075,37 @@ def createTable(results):
 		allResults += st[1]
 
 	
-	relativeResults = []
-	for st in sortedTons:
-		relativeResults.append((st[0], st[1]/allResults))
-	
 
 	# find the peak
-	relativeResults2 = sorted(relativeResults, key=lambda x:x[1])
+	st2 = sorted(sortedTons, key=lambda x:x[1])
+	peak = st2[-1]
+	#print('Peak:', peak)
 
-	for r in relativeResults2:
-		print(r[0], '%0.2f' % r[1])
+	if peak[0] == 0:
+		nlf = float(peak[1]) / len(results)
+		print('0t-peak:', peak[1], '(%0.2f)' % nlf)
+		while peak[0] == 0:
+			st2.pop()
+			peak = st2[-1]		
+
+	print('Peak:', peak)
 
 
 	print('Items:', len(sortedTons))
 	print('Range:', minTons,'->',maxTons)
 	print('Result range:', minResult, '->', maxResult)
+
+
+	print('Attack tonnage distribution:')
+	for t,c in sortedTons:
+		s = round(float(c) / peak[1] * 10)
+		s = s * '*'
+
+		if c == peak[1]:
+			s += ' <- Peak'
+
+		print(t,c,s)
+
 
 def writeResults(filename, results):
 
@@ -1104,19 +1120,19 @@ def writeResults(filename, results):
 def attackC2():
 	print('Attacking large convoy (C2)')
 
-	subcount = 5
+	subcount = 1
 
 	results = []
-	seedCups(1)
+	seedCups(2)
 
-	for i in range(0, 2000):
+	for i in range(0, 1000):
 
 		c2 = Convoy('C2')
 		c2.straggle_level = 1
 
 		subs = []
 		for s in range(0, subcount):
-			sub = Sub('U-' + str(i) + '.' + str(s), 5, 3, 3, 0)
+			sub = Sub('U-' + str(i) + '.' + str(s), 5, 3, 3, 2)
 			c2.placeSub(sub)
 			subs.append(sub)
 
