@@ -31,6 +31,7 @@ cups = {}
 torpvalue = -1
 bdienst = 0
 asw_value = 0
+air_cover = 'light'
 
 # current ops area
 red_boxes = 2
@@ -357,7 +358,7 @@ class Convoy:
 		else:
 			# counterattack
 			roll = random.randint(0,9)
-			roll += sub.damaged
+			roll += sub.isDamaged()
 			if reattack:
 				roll += 1
 			if sub.spotted:
@@ -483,7 +484,7 @@ class Sub:
 		self.crashDiveRating = 3
 		self.inexperienced = False
 		self.spotted = False
-		self.damaged = 0
+		self.damage = 0
 		self.rtb = False
 
 	def __repr__(self):
@@ -503,9 +504,31 @@ class Sub:
 		if roll < self.crashDiveRating:
 			self.spotted = True
 			print('Sub', self.name, 'fails to crash dive, becomes spotted')
+			return False
 		else:
 			print('Sub', self.name, 'crash dives!')
+			return True
+
+	def takeDamage(self, rtb=False):
+		self.damage += 1
 		
+		rtbText = ''
+		if rtb:
+			self.rtb = True
+			rtbText = ' returns to base'
+
+		print('Sub ' + str(self.name) + ' takes damage' + rtbText)
+
+	def isDamaged(self):
+		return self.damage > 0
+
+	def isSunk(self):
+		return self.damage == -1
+
+	def sink(self):
+		self.damage = -1
+		print('Sub ' + str(self.name) + 'sinks')
+
 	def attack(self, convoy):
 		result = CombatResult(self)
 
@@ -1098,7 +1121,7 @@ def createTable(results):
 
 	print('Attack tonnage distribution:')
 	for t,c in sortedTons:
-		s = round(float(c) / peak[1] * 10)
+		s = int(round(float(c) / peak[1] * 10))
 		s = s * '*'
 
 		if c == peak[1]:
@@ -1115,6 +1138,22 @@ def writeResults(filename, results):
 		f.write(str(r.sub) + ',' + str(r.sunk) + ',' + str(r.tons) + ',' + str(r.subDamaged) + ',' + str(r.subSunk) + ',' + str(r.subSpotted) + ',' + str(r.subRTB) + '\n')
 
 	f.close()
+
+
+def diligentEscortTable(sub):
+	roll = random.randint(0, 9)
+	if sub.inexperienced:
+		roll += 1
+
+	if roll == 6:
+		sub.spotted = True
+	if roll == 7:
+		sub.takeDamage(False)
+	if roll == 8:
+		sub.takeDamage(True)
+	if roll > 8:
+		sub.sink()
+
 
 
 def attackC2():
@@ -1146,18 +1185,28 @@ def attackC2():
 				if r and r.type == 'AC':
 					print('Found aircraft!')
 
+					if air_cover == 'light' and random .randint(0,9) > 4:
+						# replace with new draw
+						print('Light air cover, replacing AC with new draw')
+						print('TODO!')
+
+
+
+
 				if r and r.type == 'Event':
-					print('Found event!')
+					print('Found event, ignoring it')
 
 					# ignore events?
 
 				if r and r.diligent:
 					print('Found diligent escort')
-					sub.crashDive()
+					if not sub.crashDive():
+						# roll for damage from diligent escort
+						diligentEscortTable(sub)
 
-					# we should crash dive here ... 
-					# and roll for damage
-					print('[Warning] Diligent Escort Attack not implemented!')
+
+
+
 
 
 			# set tdcs [14.14]
@@ -1180,7 +1229,7 @@ def attackC2():
 
 		# second round of combat
 		# first, remove all damaged, rtb subs
-		subs = [s for s in subs if not (s.rtb or s.damaged or s.spotted)]
+		subs = [s for s in subs if not (s.rtb or s.isDamaged() or s.spotted)]
 
 
 
@@ -1205,7 +1254,9 @@ def parseCommandLine():
 
 
 if __name__ == '__main__':
+	random.seed()
 	parseCommandLine()
+
 	seedTDCCup()
 
 	attackC2()
