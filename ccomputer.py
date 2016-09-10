@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 # The MIT License (MIT)
 # Copyright (c) 2016 Markus Broecker <mbrckr@gmail.com>
@@ -326,8 +326,8 @@ class Convoy:
 
 
 		# sorted columns by tac entry roll
-		cols = sorted(self.columns, key=lambda x:(x.entry or 0))
-		
+		cols = sorted(self.columns, key=lambda x:(x.entry or 0), reverse=True)
+
 		# try and place the sub as close to the center as possible
 		for c in cols:
 			if c.tryAndPlaceSub(sub):
@@ -486,7 +486,7 @@ class Sub:
 		self.defenseRating = defense
 		self.tacRating = tactical
 		self.skipper = skipper
-		self.crashDiveRating = 3
+		self.crashDiveRating = 1
 		self.inexperienced = False
 		self.spotted = False
 		self.damage = 0
@@ -1141,6 +1141,7 @@ def createTable(results):
 		print(t,c,s)
 
 
+
 def writeResults(filename, results):
 
 	f = open(filename, 'w')
@@ -1219,16 +1220,16 @@ def attackRound(convoy, subs, combatRound):
 
 
 def attackConvoy():
-	subcount = 2
+	subcount = 1
 
 	results = []
 
 	warperiod = 1
 	convoyType = 'C1'
 
-	for i in range(0, 1000):
+	for i in range(0, 200):
 
-		if i % 100 == 0:
+		if i % 50 == 0:
 			seedCups(warperiod)
 
 		convoy = Convoy(convoyType)
@@ -1241,7 +1242,7 @@ def attackConvoy():
 			if subcount > 1:
 				name += '.' + str(s)
 
-			sub = Sub(name, 5, 3, 3, 0)
+			sub = Sub(name, 4, 2, 3, 2)
 			convoy.placeSub(sub)
 			subs.append(sub)
 
@@ -1275,8 +1276,37 @@ def attackConvoy():
 
 
 			# convoy is large -- check for scatter
-			combatResultRound2 = attackRound(convoy, subs, 2,)
+			combatResultRound2 = attackRound(convoy, subs, 2)
 			combatResultRound1.combine([combatResultRound2])
+
+
+		# [14.4] Multiple Re-attack rounds
+		# again, first remove all subs that are damaged, etc
+		subs = [s for s in subs if not (s.rtb or s.isDamaged() or s.spotted)]
+
+		# then remove all subs without elite skipper		
+		subs = [s for s in subs if s.skipper > 0]
+
+		if len(subs) == 0:
+			print('No valid subs remaining for 2nd re-attack round, breaking off attack procedure')
+		else:
+
+			# [29.3] Check for straggle increase
+			tgt = combatResultRound1.sunk + combatResultRound1.damaged
+			roll = random.randint(0, 9)	
+
+			if roll < tgt or roll == 0:
+				print('Convoy straggle level increases')
+				convoy.straggle_level += 1
+
+			if roll == 9:
+				print('Convoy straggle level decreases')
+				convoy.straggle_level = max(convoy.straggle_level-1, 0)
+
+
+			# convoy is large -- check for scatter
+			combatResultRound3 = attackRound(convoy, subs, 2)
+			combatResultRound1.combine([combatResultRound3])
 
 
 		results.append(combatResultRound1)
