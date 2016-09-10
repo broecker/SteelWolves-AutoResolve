@@ -32,9 +32,10 @@ torpvalue = -1
 bdienst = 0
 asw_value = 0
 air_cover = 'light'
+base_straggle_level = 1 
 
 # current ops area
-red_boxes = 2
+red_boxes = 0
 
 
 
@@ -393,54 +394,33 @@ class Convoy:
 			else:
 
 				if roll in row[0]:
-					result.subSpotted = True
 					sub.spotted = True
 					print('Sub', sub, 'spotted')
 
 				if roll in row[1]:
-					result.subDamaged = True
-					sub.damaged = True
-					print('Sub', sub, 'damaged')
-
+					sub.takeDamage(False)
 				if roll in row[2]:
-					result.subDamaged = True
-					result.subRTB = True
-					sub.damaged = True
-					sub.rtb = True
-					print('Sub', sub, 'damaged RTB')
+					sub.takeDamage(True)
 
 				if roll in row[3]:
 					roll2 = random.randint(0, 9)
 					if roll2 >= 7:
-						result.subSunk = True 
-						sub.sunk = True
-						print('Sub', sub, 'sunk')
+						sub.sink()
 					else:
-						result.subDamaged = True
-						result.subRTB = True
-						sub.damaged = True
-						sub.rtb = True
-						print('Sub', sub, 'damaged RTB')
-
+						sub.takeDamage(True)
 
 				if roll in row[4]:
 					roll2 = random.randint(0,9)
 					if roll2 >= 4:
-						result.subSunk = True 
-						sub.sunk = True
-						print('Sub', sub, 'sunk')
+						sub.sink()
 					else:
-						result.subDamaged = True
-						result.subRTB = True
-						sub.damaged = True
-						sub.rtb = True			
-						print('Sub', sub, 'damaged RTB')
+						sub.takeDamage(True)
 
 				if roll in row[5]:
-					result.subSunk = True 
-					sub.sunk = True
-					print('Sub', sub, 'sunk')
+					sub.sink()
 
+
+				result.addSub(sub)
 
 		return result
 
@@ -461,8 +441,18 @@ class CombatResult:
 	def printSummary(self):
 		print('Sub',self.sub, 'sunk', self.sunk, 'ships for', self.tons, 'tons. Status:', self.subDamaged, 'damaged', self.subSpotted, 'spotted', self.subSunk, 'sunk', self.subRTB, 'RTB')
 
-	def combine(self, results):
+	def addSub(self, sub):
+		if sub.isDamaged():
+			self.subDamaged += 1
+		if sub.isSunk():
+			self.subSunk += 1
+		else:
+			if sub.spotted:
+				self.subSpotted += 1
+			if sub.rtb:
+				self.subRTB += 1 
 
+	def combine(self, results):
 		for r in results:
 			self.sunk += r.sunk
 			self.tons += r.tons 
@@ -1155,6 +1145,55 @@ def diligentEscortTable(sub):
 		sub.sink()
 
 
+def attackRound(convoy, subs, combatRound):
+	attackResults = []
+	for sub in subs:
+		# reveal counters [14.12]
+		revealed = sub.revealCounters()
+
+		for r in revealed:
+			if r and r.type == 'AC':
+				print('Found aircraft!')
+
+				if air_cover == 'light' and random .randint(0,9) > 4:
+					# replace with new draw
+					print('Light air cover, replacing AC with new draw')
+					print('TODO!')
+
+			if r and r.type == 'Event':
+				print('Found event, ignoring it')
+
+				# ignore events?
+
+			if r and r.diligent:
+				print('Found diligent escort')
+				if not sub.crashDive():
+					# roll for damage from diligent escort
+					diligentEscortTable(sub)
+
+
+		# set tdcs [14.14]
+		seedTDCCup()
+		combatResult = sub.attack(convoy)
+
+		reAttack = False
+		if combatRound > 1:
+			reAttack = True
+
+		combatResult = convoy.counterattack(sub, reAttack, combatResult)
+
+		attackResults.append(combatResult)
+
+	if len(attackResults) == 1:
+		return attackResults[0]
+	else:
+		# combine all attacks into one result
+		cr = CombatResult(Wolfpack('WF' + str(i), subs))
+		cr.combine(attackResults)
+		return cr
+
+
+
 
 def attackC2():
 	print('Attacking large convoy (C2)')
@@ -1162,74 +1201,59 @@ def attackC2():
 	subcount = 1
 
 	results = []
-	seedCups(2)
+	seedCups(1)
 
 	for i in range(0, 1000):
 
 		c2 = Convoy('C2')
-		c2.straggle_level = 1
+		c2.straggle_level = base_straggle_level
 
 		subs = []
 		for s in range(0, subcount):
-			sub = Sub('U-' + str(i) + '.' + str(s), 5, 3, 3, 2)
+
+			name = 'U-' + str(i)
+			if subcount > 1:
+				name += '.' + str(s)
+
+			sub = Sub(name, 5, 3, 3, 0)
 			c2.placeSub(sub)
 			subs.append(sub)
 
 
-		attackResults =[]
-		for sub in subs:
-			# reveal counters [14.12]
-			revealed = sub.revealCounters()
 
-			for r in revealed:
-				if r and r.type == 'AC':
-					print('Found aircraft!')
-
-					if air_cover == 'light' and random .randint(0,9) > 4:
-						# replace with new draw
-						print('Light air cover, replacing AC with new draw')
-						print('TODO!')
+		combatResultRound1 = attackRound(c2, subs, 1)
 
 
-
-
-				if r and r.type == 'Event':
-					print('Found event, ignoring it')
-
-					# ignore events?
-
-				if r and r.diligent:
-					print('Found diligent escort')
-					if not sub.crashDive():
-						# roll for damage from diligent escort
-						diligentEscortTable(sub)
-
-
-
-
-
-
-			# set tdcs [14.14]
-			seedTDCCup()
-			result = sub.attack(c2)
-			result = c2.counterattack(sub, False, result)
-			
-
-			attackResults.append(result)
-
-		if len(attackResults) == 1:
-			results += attackResults
-		else:
-			# combine all attacks into one result
-			cr = CombatResult(Wolfpack('WF' + str(i), subs))
-			cr.combine(attackResults)
-			results.append(cr)
-
-
-
-		# second round of combat
-		# first, remove all damaged, rtb subs
+		# [14.3] Voluntary withdrawal
+		# in our case all RTB, damaged and spotted subs
 		subs = [s for s in subs if not (s.rtb or s.isDamaged() or s.spotted)]
+
+		if len(subs) == 0:
+			print('No valid subs remaining for re-attack, breaking off the attack')
+		else:
+
+
+			# [14.4] Re-attack rounds
+
+			# [29.3] Check for straggle increase
+			tgt = combatResultRound1.sunk + combatResultRound1.damaged
+			roll = random.randint(0, 9)	
+
+			if roll < tgt or roll == 0:
+				print('Convoy straggle level increases')
+				c2.straggle_level += 1
+
+			if roll == 9:
+				print('Convoy straggle level decreases')
+				c2.straggle_level = max(c2.straggle_level-1, 0)
+
+
+			# convoy is large -- check for scatter
+			combatResultRound2 = attackRound(c2, subs, 2,)
+			combatResultRound1.combine([combatResultRound2])
+
+
+		results.append(combatResultRound1)
 
 
 
