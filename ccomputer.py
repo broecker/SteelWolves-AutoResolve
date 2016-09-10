@@ -1203,7 +1203,9 @@ def attackRound(convoy, subs, combatRound):
 		return attackResults[0]
 	else:
 		# combine all attacks into one result
-		cr = CombatResult(Wolfpack('WF' + str(i), subs))
+		no = subs[0].name[2:subs[0].name.find('.')]
+	
+		cr = CombatResult(Wolfpack('WF' + no, subs))
 		cr.combine(attackResults)
 		return cr
 
@@ -1211,14 +1213,17 @@ def attackRound(convoy, subs, combatRound):
 
 
 def attackConvoy():
-	subcount = 1
+	subcount = 2
 
 	results = []
-	seedCups(1)
 
+	warperiod = 1
 	convoyType = 'C1'
 
 	for i in range(0, 1000):
+
+		if i % 100 == 0:
+			seedCups(warperiod)
 
 		convoy = Convoy(convoyType)
 		convoy.straggle_level = base_straggle_level
