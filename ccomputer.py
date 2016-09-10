@@ -264,8 +264,23 @@ class Convoy:
 
 
 		if type == 'C1':
-			print('not yet implemented')
+			# fill in columns [13.24]
+			os = Column(self, 'Outer Starboard', None, 2)
+			s = Column(self, 'Starboard', 9, 1)
+			p = Column(self, 'Port', 9, 1)
+			op = Column(self, 'Outer Port', None, 2)
 
+			os.setAdjacent([s])
+			s.setAdjacent([os,p])
+			p.setAdjacent([s, op])
+			op.setAdjacent([p])
+
+			self.columns =[os, s, p, op]
+
+			os.seed(cups['outer'], 6)
+			s.seed(cups['inner'], 6)
+			p.seed(cups['inner'], 6)
+			op.seed(cups['outer'], 6) 
 
 
 		if type == 'C2':
@@ -287,12 +302,12 @@ class Convoy:
 			self.columns = [os, s, cs, cp, p, op]
 
 
-			os.seed(cups['outer'], 5)
-			s.seed(cups['inner'], 5)
-			cs.seed(cups['center'], 5)
-			cp.seed(cups['center'], 5)
-			p.seed(cups['inner'], 5)
-			op.seed(cups['outer'], 5) 
+			os.seed(cups['outer'], 6)
+			s.seed(cups['inner'], 6)
+			cs.seed(cups['center'], 6)
+			cp.seed(cups['center'], 6)
+			p.seed(cups['inner'], 6)
+			op.seed(cups['outer'], 6) 
 
 		if type == 'Loner':
 			print('Loner not yet implemented')
@@ -1195,18 +1210,18 @@ def attackRound(convoy, subs, combatRound):
 
 
 
-def attackC2():
-	print('Attacking large convoy (C2)')
-
+def attackConvoy():
 	subcount = 1
 
 	results = []
 	seedCups(1)
 
+	convoyType = 'C1'
+
 	for i in range(0, 1000):
 
-		c2 = Convoy('C2')
-		c2.straggle_level = base_straggle_level
+		convoy = Convoy(convoyType)
+		convoy.straggle_level = base_straggle_level
 
 		subs = []
 		for s in range(0, subcount):
@@ -1216,12 +1231,12 @@ def attackC2():
 				name += '.' + str(s)
 
 			sub = Sub(name, 5, 3, 3, 0)
-			c2.placeSub(sub)
+			convoy.placeSub(sub)
 			subs.append(sub)
 
 
 
-		combatResultRound1 = attackRound(c2, subs, 1)
+		combatResultRound1 = attackRound(convoy, subs, 1)
 
 
 		# [14.3] Voluntary withdrawal
@@ -1241,15 +1256,15 @@ def attackC2():
 
 			if roll < tgt or roll == 0:
 				print('Convoy straggle level increases')
-				c2.straggle_level += 1
+				convoy.straggle_level += 1
 
 			if roll == 9:
 				print('Convoy straggle level decreases')
-				c2.straggle_level = max(c2.straggle_level-1, 0)
+				convoy.straggle_level = max(convoy.straggle_level-1, 0)
 
 
 			# convoy is large -- check for scatter
-			combatResultRound2 = attackRound(c2, subs, 2,)
+			combatResultRound2 = attackRound(convoy, subs, 2,)
 			combatResultRound1.combine([combatResultRound2])
 
 
@@ -1283,4 +1298,4 @@ if __name__ == '__main__':
 
 	seedTDCCup()
 
-	attackC2()
+	attackConvoy()
