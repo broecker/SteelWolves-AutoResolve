@@ -468,7 +468,11 @@ class CombatResult:
 				self.subRTB += 1 
 
 	def combine(self, results):
+
 		for r in results:
+			if r == None:
+				continue
+
 			self.sunk += r.sunk
 			self.tons += r.tons 
 			self.damaged += r.damaged
@@ -1168,6 +1172,10 @@ def diligentEscortTable(sub):
 
 
 def attackRound(convoy, subs, combatRound):
+
+	if len(subs) == 0:
+		return
+
 	attackResults = []
 	for sub in subs:
 		# reveal counters [14.12]
@@ -1217,6 +1225,45 @@ def attackRound(convoy, subs, combatRound):
 		return cr
 
 
+def withdrawSubs(subs, combatRound):
+
+	# [14.3] Voluntary withdrawal
+	# in our case all RTB, damaged and spotted subs and also all subs 
+	subs = [s for s in subs if not (s.rtb or s.isDamaged() or s.spotted)]
+
+	if combatRound > 1 and len(subs) > 0:
+		# then remove all subs without elite skipper		
+		subs = [s for s in subs if s.skipper > 0]
+
+	return subs
+
+
+def increaseStraggle(convoy, targetsDamagesOrSunk, combatRound):
+	
+	roll = random.randint(0, 9)
+	if roll < targetsDamagesOrSunk or roll == 0:
+		print('Convoy straggle level increases')
+		convoy.straggle_level += 1
+
+	if roll == 9:
+		print('Convoy straggle level decreases')
+		convoy.straggle_level = max(convoy.straggle_level-1, 0)
+
+
+def createSubs(subcount, convoy, id):
+	subs = []
+	for s in range(0, subcount):
+
+		name = 'U-' + str(id)
+		if subcount > 1:
+			name += '.' + str(s)
+
+		sub = Sub(name, 4, 2, 3, 2)
+		convoy.placeSub(sub)
+		subs.append(sub)
+
+	return subs
+
 
 
 def attackConvoy():
@@ -1232,81 +1279,33 @@ def attackConvoy():
 		if i % 50 == 0:
 			seedCups(warperiod)
 
+		# create convoy and subs
 		convoy = Convoy(convoyType)
 		convoy.straggle_level = base_straggle_level
-
-		subs = []
-		for s in range(0, subcount):
-
-			name = 'U-' + str(i)
-			if subcount > 1:
-				name += '.' + str(s)
-
-			sub = Sub(name, 4, 2, 3, 2)
-			convoy.placeSub(sub)
-			subs.append(sub)
+		subs = createSubs(subcount, convoy, i)
 
 
-
+		# first round of attack
 		combatResultRound1 = attackRound(convoy, subs, 1)
+		subs = withdrawSubs(subs, 1)
 
+		# [14.4] Re-attack rounds
 
-		# [14.3] Voluntary withdrawal
-		# in our case all RTB, damaged and spotted subs
-		subs = [s for s in subs if not (s.rtb or s.isDamaged() or s.spotted)]
+		# [29.3] Check for straggle increase
+		increaseStraggle(convoy, combatResultRound1.sunk+combatResultRound1.damaged, 1)
 
-		if len(subs) == 0:
-			print('No valid subs remaining for re-attack, breaking off the attack')
-		else:
-
-
-			# [14.4] Re-attack rounds
-
-			# [29.3] Check for straggle increase
-			tgt = combatResultRound1.sunk + combatResultRound1.damaged
-			roll = random.randint(0, 9)	
-
-			if roll < tgt or roll == 0:
-				print('Convoy straggle level increases')
-				convoy.straggle_level += 1
-
-			if roll == 9:
-				print('Convoy straggle level decreases')
-				convoy.straggle_level = max(convoy.straggle_level-1, 0)
-
-
-			# convoy is large -- check for scatter
-			combatResultRound2 = attackRound(convoy, subs, 2)
-			combatResultRound1.combine([combatResultRound2])
+		combatResultRound2 = attackRound(convoy, subs, 2)
+		combatResultRound1.combine([combatResultRound2])
 
 
 		# [14.4] Multiple Re-attack rounds
-		# again, first remove all subs that are damaged, etc
-		subs = [s for s in subs if not (s.rtb or s.isDamaged() or s.spotted)]
+		subs = withdrawSubs(subs, 2)
 
-		# then remove all subs without elite skipper		
-		subs = [s for s in subs if s.skipper > 0]
+		increaseStraggle(convoy, combatResultRound1.sunk+combatResultRound1.damaged, 2)
 
-		if len(subs) == 0:
-			print('No valid subs remaining for 2nd re-attack round, breaking off attack procedure')
-		else:
-
-			# [29.3] Check for straggle increase
-			tgt = combatResultRound1.sunk + combatResultRound1.damaged
-			roll = random.randint(0, 9)	
-
-			if roll < tgt or roll == 0:
-				print('Convoy straggle level increases')
-				convoy.straggle_level += 1
-
-			if roll == 9:
-				print('Convoy straggle level decreases')
-				convoy.straggle_level = max(convoy.straggle_level-1, 0)
-
-
-			# convoy is large -- check for scatter
-			combatResultRound3 = attackRound(convoy, subs, 2)
-			combatResultRound1.combine([combatResultRound3])
+		# convoy is large -- check for scatter
+		combatResultRound3 = attackRound(convoy, subs, 2)
+		combatResultRound1.combine([combatResultRound3])
 
 
 		results.append(combatResultRound1)
