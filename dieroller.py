@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 # The MIT License (MIT)
 # Copyright (c) 2016 Markus Broecker <mbrckr@gmail.com>
@@ -25,7 +25,7 @@ import random
 
 if __name__ == '__main__':
 
-	random.seed(0)
+	random.seed()
 
 	drm = 0
 	dice = 2
