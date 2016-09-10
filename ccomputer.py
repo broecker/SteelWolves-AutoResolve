@@ -516,13 +516,19 @@ class Sub:
 
 	def takeDamage(self, rtb=False):
 		self.damage += 1
-		
+
 		rtbText = ''
 		if rtb:
 			self.rtb = True
 			rtbText = ' returns to base'
 
 		print('Sub ' + str(self.name) + ' takes damage' + rtbText)
+
+
+		if self.damage > 1:
+			roll = random.randint(0, 9)
+			if roll > self.defenseRating:
+				self.sink()
 
 	def isDamaged(self):
 		return self.damage > 0
