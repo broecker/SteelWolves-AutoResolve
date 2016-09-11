@@ -1183,9 +1183,9 @@ def createTable(results):
 def writeResults(filename, results):
 
 	f = open(filename, 'w')
-	f.write('# name, tgt sunk, tgt tons, subsDmgd, subsSunk, subsSpotted, subsRTB\n')
+	f.write('# name, tgt sunk, tgt tons, subsDmgd, subsSunk, subsSpotted, subsRTB, subsPromoted\n')
 	for r in results:
-		f.write(str(r.sub) + ',' + str(r.sunk) + ',' + str(r.tons) + ',' + str(r.subDamaged) + ',' + str(r.subSunk) + ',' + str(r.subSpotted) + ',' + str(r.subRTB) + '\n')
+		f.write(str(r.sub) + ',' + str(r.sunk) + ',' + str(r.tons) + ',' + str(r.subDamaged) + ',' + str(r.subSunk) + ',' + str(r.subSpotted) + ',' + str(r.subRTB) + ',' + str(r.subRTB) + '\n')
 
 	f.close()
 
@@ -1342,6 +1342,8 @@ def attackConvoy():
 		convoy.straggle_level = base_straggle_level
 		subs = createSubs(subcount, convoy, i)
 
+		initialSubs = subs
+
 
 		# first round of attack
 		combatResultRound1 = attackRound(convoy, subs, 1)
@@ -1366,24 +1368,10 @@ def attackConvoy():
 		combatResultRound1.combine([combatResultRound3])
 
 
-
-		if combatResultRound1.tons > 15 and combatResultRound1.sunk > 2:
-			print('------------------------------')
-			print('!!!! Good score!')
-			combatResultRound1.printSummary()
-			print('Claimed tons: ', combatResultRound1.sub.tonsSunk, ' ships:', combatResultRound1.sub.targetsSunk)
-
-
-		for s in subs:
+		for s in initialSubs:
 			if s.eligibleForPromotion():
 				combatResultRound1.subPromoted += 1
 				s.promoteSkipper()
-
-
-		if combatResultRound1.tons > 20 and combatResultRound1.sunk > 2:
-			print('------------------------------')
-
-
 
 		results.append(combatResultRound1)
 
@@ -1396,8 +1384,12 @@ def attackConvoy():
 		r.printSummary() 
 
 	#summarizeResults(results)
-	#writeResults('c2-wp1.csv', results)
+	writeResults('c1-wp1.csv', results)
 	#createTable(results)
+
+	tmp = [r for r in results if r.sunk >= 3 and r.tons > 23]
+	for t in tmp:
+		t.printSummary()
 
 	r2 = [r for r in results if r.subPromoted > 0]
 
