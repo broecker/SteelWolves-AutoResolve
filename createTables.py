@@ -21,6 +21,8 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
+import sys
+
 class Result:
 	def __init__(self, data):
 		self.name = data[0]
@@ -60,8 +62,82 @@ def loadFile(filename):
 
 
 
+class Histogram:
+	def __init__(self, name, data):
+		self.name = name
+
+		if len(data) == 0:
+			print('Not enough data!')
+
+		# create histogram here
+		histo = {}
+
+		for r in data:
+			key = str(r)
+			try:
+				histo[key] += 1
+			except KeyError:
+				histo[key] = 1
+
+
+		self.minKey = sys.maxint
+	 	self.maxKey = -sys.maxint - 1
+
+	 	for r in histo.keys():
+	 		k = int(r)
+	 		self.minKey = min(self.minKey, k)
+	 		self.maxKey = max(self.maxKey, k)
+
+	 	sortedArray = []
+	 	for key in range(self.minKey, self.maxKey):
+
+	 		try:
+	 			val = histo[str(key)]
+	 			sortedArray.append((key, val))
+	 		except KeyError:
+	 			pass
+
+	 	# find the peak
+	 	sa2 = sorted(sortedArray, key=lambda x: x[1])
+	 	self.peak = sa2[-1]
+
+		if self.peak[0] == 0 and len(sa2) > 1:
+			nlf = float(self.peak[1]) / len(data)
+			#print('zero-peak:', self.peak[1], '(%0.2f)' % nlf)
+			while self.peak[0] == 0:
+				sa2.pop()
+				self.peak = sa2[-1]	
+
+
+		self.values = sortedArray
+
+
+	def printData(self):
+		print(self.name + ' histogram:')
+		print('Peak: ' + str(self.peak))
+	 	print('Keys: [' + str(self.minKey) + ' -> ' + str(self.maxKey) + ']')
+		print('Distribution:')
+		for t,c in self.values:
+			s = int(round(float(c) / self.peak[1] * 10))
+			s = s * '*'
+
+			if c == self.peak[1]:
+				s += ' <- Peak'
+
+			print(t,c,s)
+
+
+
+
 if __name__ == '__main__':
-	data = loadFile('c1-wp1.csv')
+	filename ='c1-wp1.csv'
+
+	if len(sys.argv) > 1:
+		filename =sys.argv[1]
+
+
+
+	data = loadFile(filename)
 
 	for r in data:
 		r.printSummary()
@@ -82,6 +158,21 @@ if __name__ == '__main__':
 
 	spotted = sum(r.subsSpotted for r in data if r.subsSpotted > 0)
 	print('Spotted : %4d' % spotted + '/' + str(count))
-	
+
 	promoted = sum(r.subsPromoted for r in data if r.subsPromoted > 0)
 	print('Promoted: %4d' %promoted + '/' + str(count))
+
+
+	tons = [r.tgtTons for r in data]
+	tons.sort
+
+	histo = Histogram('Tonnage', tons)
+	histo.printData()
+
+	damaged = [r.subsDamaged for r in data]
+	hDmg = Histogram('Damaged', damaged)
+	hDmg.printData()
+
+	sunk = [r.subsSunk for r in data]
+	hSnk = Histogram('Sunk', sunk)
+	hSnk.printData()

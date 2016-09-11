@@ -1325,7 +1325,7 @@ def createSubs(subcount, convoy, id):
 
 
 def attackConvoy():
-	subcount = 1
+	subcount = 4
 
 	results = []
 
