@@ -1283,7 +1283,7 @@ def createSubs(subcount, convoy, id):
 		if subcount > 1:
 			name += '.' + str(s)
 
-		sub = Sub(name, 4, 2, 3, 1)
+		sub = Sub(name, 4, 2, 3, 0)
 		convoy.placeSub(sub)
 		subs.append(sub)
 
@@ -1336,14 +1336,8 @@ def attackConvoy():
 
 		#print(combatResultRound1)
 		if combatResultRound1.fullfillsPromotionRequirements():
-
-			print('!!!!--------------------------------------------^^^')
-
 			combatResultRound1.sub.promoteSkipper()
 			combatResultRound1.subPromoted += 1
-
-			print('!!!!--------------------------------------------^^^')
-
 
 		results.append(combatResultRound1)
 
@@ -1360,23 +1354,16 @@ def attackConvoy():
 	#createTable(results)
 
 	r2 = [r for r in results if r.fullfillsPromotionRequirements()]
-	for r in r2:
-		r.printSummary()
 
-
-def parseCommandLine():
-	if len(sys.argv) == 1:
-		return
-
-	for c in range(1,len(sys.argv)):
-		v = sys.argv[c]
-
-		print(c)
-
+	if len(r2) > 0:
+		print('Skipper promitions:')
+		for r in r2:
+			r.printSummary()
+	else:
+		print('No skippers promoted.')
 
 if __name__ == '__main__':
 	random.seed()
-	parseCommandLine()
 
 	seedTDCCup()
 
