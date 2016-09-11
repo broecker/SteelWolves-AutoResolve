@@ -97,8 +97,13 @@ class Histogram:
 	 		except KeyError:
 	 			pass
 
+		self.values = sortedArray
+	 	self.findPeak()
+
+	def findPeak(self):
+
 	 	# find the peak
-	 	sa2 = sorted(sortedArray, key=lambda x: x[1])
+	 	sa2 = sorted(self.values, key=lambda x: x[1])
 	 	self.peak = sa2[-1]
 
 		if self.peak[0] == 0 and len(sa2) > 1:
@@ -107,9 +112,6 @@ class Histogram:
 			while self.peak[0] == 0:
 				sa2.pop()
 				self.peak = sa2[-1]	
-
-
-		self.values = sortedArray
 
 
 	def printData(self):
@@ -126,6 +128,32 @@ class Histogram:
 
 			print(t,c,s)
 
+	def saveFile(self, filename):
+		file = open(filename, 'w')
+
+		for t,c in self.values:
+			file.write(str(t) + ',' + str(c) + '\n')
+
+
+	def loadFile(self, filename):
+		file = open(filename, 'r')
+
+		self.values = []
+
+		for line in file:
+			vals = line.split(',')
+			self.values.append((int(vals[0]), int(vals[1])))
+
+
+		self.minKey = sys.maxint
+	 	self.maxKey = -sys.maxint - 1
+
+	 	for r in self.values:
+	 		k = r[0]
+	 		self.minKey = min(self.minKey, k)
+	 		self.maxKey = max(self.maxKey, k)
+
+	 	self.findPeak()
 
 
 
