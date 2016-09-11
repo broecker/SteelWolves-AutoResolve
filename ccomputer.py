@@ -60,7 +60,7 @@ class Encounter:
 		else:
 			return self.type + ' (' + str(self.defense) + '-' + str(self.asw) + ')'
 
-	def rollForDamage(self):
+	def rollForDamage(self, sub):
 		roll = random.randint(0, 9) + torpvalue
 		result = 'none'
 
@@ -80,14 +80,14 @@ class Encounter:
 				# special case
 				roll2 = random.randint(0, 9)
 				if roll2 == 8:
-					print('IMPLEMENT_ME: Sub damaged')
+					sub.takeDamage(False)
 				if roll2 == 9:
 					r3 = random.randint(0, 9)
 					if r3 >= 7:
-						print('IMPLEMENT_ME: Sub sunk')
+						sub.sink()
 					else:
-						print('IMPLEMENT_ME: Sub damaged RTB')
-
+						sub.takeDamage(True)
+						
 
 		if self.tons > 9 and self.tons < 18:
 			if roll > 2:
@@ -631,7 +631,7 @@ class Sub:
 				print('Diff:',diff,'Roll:', roll, 'Target hit')
 
 				# consult attack results table here
-				d = t.rollForDamage()
+				d = t.rollForDamage(self)
 
 				if d == 'sunk':
 					result.sunk += 1
