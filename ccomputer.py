@@ -447,6 +447,9 @@ class CombatResult:
 	def printSummary(self):
 		print('Sub',self.sub, 'sunk', self.sunk, 'ships for', self.tons, 'tons. Status:', self.subDamaged, 'damaged', self.subSpotted, 'spotted', self.subSunk, 'sunk', self.subRTB, 'RTB', 'promoted', self.subPromoted)
 
+	def fullfillsPromotionRequirements(self):
+		return self.tons >= 23 and self.sunk >= 3
+
 	def addSub(self, sub):
 		if sub.isDamaged():
 			self.subDamaged += 1
@@ -1209,7 +1212,7 @@ def attackRound(convoy, subs, combatRound):
 							revealed.append(r.column.targets[idx])
 							print('Redrew encounter at position ' + str(idx) + ': ' + str(new_encounter))
 
-					except KeyError:
+					except ValueError:
 						print('FIXME! AC column index could not be found')
 
 			if r and r.type == 'Event':
@@ -1280,7 +1283,7 @@ def createSubs(subcount, convoy, id):
 		if subcount > 1:
 			name += '.' + str(s)
 
-		sub = Sub(name, 4, 2, 3, 2)
+		sub = Sub(name, 4, 2, 3, 1)
 		convoy.placeSub(sub)
 		subs.append(sub)
 
@@ -1331,7 +1334,15 @@ def attackConvoy():
 
 
 
-		print(combatResultRound1)
+		#print(combatResultRound1)
+		if combatResultRound1.fullfillsPromotionRequirements():
+
+			print('!!!!--------------------------------------------^^^')
+
+			combatResultRound1.sub.promoteSkipper()
+			combatResultRound1.subPromoted += 1
+
+			print('!!!!--------------------------------------------^^^')
 
 
 		results.append(combatResultRound1)
@@ -1346,7 +1357,12 @@ def attackConvoy():
 
 	summarizeResults(results)
 	#writeResults('c2-wp1.csv', results)
-	createTable(results)
+	#createTable(results)
+
+	r2 = [r for r in results if r.fullfillsPromotionRequirements()]
+	for r in r2:
+		r.printSummary()
+
 
 def parseCommandLine():
 	if len(sys.argv) == 1:
