@@ -87,7 +87,7 @@ class Encounter:
 						sub.sink()
 					else:
 						sub.takeDamage(True)
-						
+
 
 		if self.tons > 9 and self.tons < 18:
 			if roll > 2:
@@ -447,9 +447,6 @@ class CombatResult:
 	def printSummary(self):
 		print('Sub',self.sub, 'sunk', self.sunk, 'ships for', self.tons, 'tons. Status:', self.subDamaged, 'damaged', self.subSpotted, 'spotted', self.subSunk, 'sunk', self.subRTB, 'RTB', 'promoted', self.subPromoted)
 
-	def fullfillsPromotionRequirements(self):
-		return self.tons >= 23 and self.sunk >= 3
-
 	def addSub(self, sub):
 		if sub.isDamaged():
 			self.subDamaged += 1
@@ -490,6 +487,9 @@ class Sub:
 		self.spotted = False
 		self.damage = 0
 		self.rtb = False
+
+		self.tonsSunk = 0
+		self.targetsSunk = 0
 
 	def __repr__(self):
 		return self.name + '(' + str(self.attackRating) + '-' + str(self.defenseRating) + '-' + str(self.tacRating) + ')'
@@ -537,6 +537,15 @@ class Sub:
 	def sink(self):
 		self.damage = -1
 		print('Sub ' + str(self.name) + 'sinks')
+
+	def eligibleForPromotion(self):
+		return self.tonsSunk >= 23 and self.targetsSunk >= 3
+
+	def claimTarget(self, target):
+		print('Sub ' + self.name + ' is claiming target ' + str(target))
+		self.tonsSunk += target.tons
+		self.targetsSunk += 1
+
 
 	def promoteSkipper(self):
 		self.skipper = min(self.skipper + 1, 2)
@@ -637,6 +646,8 @@ class Sub:
 					result.sunk += 1
 					result.tons += t.tons
 
+					self.claimTarget(t)
+
 				if d == 'damage':
 					result.damaged += 1
  
@@ -660,7 +671,6 @@ class Wolfpack:
 		self.name = name 
 	def __repr__(self):
 		return 'Wolfpack ' + self.name +'(' + str(len(self.subs)) + ' boats)'
-
 
 
 def getEvent(type) : 
@@ -1003,6 +1013,7 @@ def summarizeResults(results):
 	subsDamaged = 0
 	subsSpotted = 0
 	subsRTB = 0
+	subsPromoted = 0
 
 	shipsSunk = []
 	shipsDamaged = []
@@ -1021,7 +1032,7 @@ def summarizeResults(results):
 		shipsSunk.append(r.sunk)
 		shipsDamaged.append(r.damaged)
 		shipsTonnage.append(r.tons)
-
+		subsPromoted += r.subPromoted
 
 	shipsSunk.sort()
 	shipsTonnage.sort()
@@ -1049,10 +1060,12 @@ def summarizeResults(results):
 	meanTons /= len(shipsTonnage)
 
 
+
 	print('Subs spotted:', subsSpotted, '/', len(results))
 	print('Subs damaged:', subsDamaged, '/', len(results))
 	print('Subs sunk:', subsSunk, '/', len(results))
 	print('Subs RTB:', subsRTB, '/', len(results))
+	print('Subs promoted:', subsPromoted, '/', len(results))
 
 	print('Ships sunk:', meanSunk, '[', minSunk, '-', maxSunk, '], mean', meanSunk, '/', devSunk)
 	print('Ships tonnage:', meanTons, '[', minTons, '-', maxTons, '] mean', meanTons, '/', devTons)
@@ -1252,6 +1265,9 @@ def attackRound(convoy, subs, combatRound):
 
 def withdrawSubs(subs, combatRound):
 
+	print('!!!!Withdrawing subs')
+	print('Before:', subs)
+
 	# [14.3] Voluntary withdrawal
 	# in our case all RTB, damaged and spotted subs and also all subs 
 	subs = [s for s in subs if not (s.rtb or s.isDamaged() or s.spotted)]
@@ -1259,6 +1275,8 @@ def withdrawSubs(subs, combatRound):
 	if combatRound > 1 and len(subs) > 0:
 		# then remove all subs without elite skipper		
 		subs = [s for s in subs if s.skipper > 0]
+
+	print('After:', subs)
 
 	return subs
 
@@ -1283,7 +1301,7 @@ def createSubs(subcount, convoy, id):
 		if subcount > 1:
 			name += '.' + str(s)
 
-		sub = Sub(name, 4, 2, 3, 0)
+		sub = Sub(name, 5, 3, 3, 0)
 		convoy.placeSub(sub)
 		subs.append(sub)
 
@@ -1334,10 +1352,23 @@ def attackConvoy():
 
 
 
-		#print(combatResultRound1)
-		if combatResultRound1.fullfillsPromotionRequirements():
-			combatResultRound1.sub.promoteSkipper()
-			combatResultRound1.subPromoted += 1
+		if combatResultRound1.tons > 15 and combatResultRound1.sunk > 2:
+			print('------------------------------')
+			print('!!!! Good score!')
+			combatResultRound1.printSummary()
+			print('Claimed tons: ', combatResultRound1.sub.tonsSunk, ' ships:', combatResultRound1.sub.targetsSunk)
+
+
+		for s in subs:
+			if s.eligibleForPromotion():
+				combatResultRound1.subPromoted += 1
+				s.promoteSkipper()
+
+
+		if combatResultRound1.tons > 20 and combatResultRound1.sunk > 2:
+			print('------------------------------')
+
+
 
 		results.append(combatResultRound1)
 
@@ -1349,11 +1380,11 @@ def attackConvoy():
 	for r in results:
 		r.printSummary() 
 
-	summarizeResults(results)
+	#summarizeResults(results)
 	#writeResults('c2-wp1.csv', results)
 	#createTable(results)
 
-	r2 = [r for r in results if r.fullfillsPromotionRequirements()]
+	r2 = [r for r in results if r.subPromoted > 0]
 
 	if len(r2) > 0:
 		print('Skipper promitions:')
