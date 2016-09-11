@@ -141,13 +141,17 @@ class Encounter:
 
 class Column:
 	''' A column in the convoy'''
-	def __init__(self, convoy, name, entry, max_subs):
+	def __init__(self, convoy, name, entry, max_subs, draw_cup, column_size):
 		self.convoy = convoy
 		self.name = name
 		self.targets = []
 		self.entry = entry
 		self.sub_positions = []
 		self.max_subs = max_subs
+		self.draw_cup = draw_cup
+
+		self.seed(column_size)
+
 
 	def __repr__(self):
 		return self.name + ' (' + str(self.entry) + ')'
@@ -155,12 +159,12 @@ class Column:
 	def setAdjacent(self, adj):
 		self.adjacent = adj
 
-	def seed(self, cup, count):
-		if len(cup) < count:
+	def seed(self, count):
+		if len(self.draw_cup) < count:
 			print('Warning, draw amount exceeds cup!')
-			self.targets = cup
+			self.targets = self.draw_cup
 		else:
-			self.targets = random.sample(cup, count)
+			self.targets = random.sample(self.draw_cup, count)
 
 		random.shuffle(self.targets)
 		self.hideAll()
@@ -265,10 +269,10 @@ class Convoy:
 
 		if type == 'C1':
 			# fill in columns [13.24]
-			os = Column(self, 'Outer Starboard', None, 2)
-			s = Column(self, 'Starboard', 9, 1)
-			p = Column(self, 'Port', 9, 1)
-			op = Column(self, 'Outer Port', None, 2)
+			os = Column(self, 'Outer Starboard', None, 2, cups['outer'], 6)
+			s = Column(self, 'Starboard', 9, 1, cups['inner'], 6)
+			p = Column(self, 'Port', 9, 1, cups['inner'], 6)
+			op = Column(self, 'Outer Port', None, 2, cups['outer'], 6)
 
 			os.setAdjacent([s])
 			s.setAdjacent([os,p])
@@ -277,20 +281,14 @@ class Convoy:
 
 			self.columns =[os, s, p, op]
 
-			os.seed(cups['outer'], 6)
-			s.seed(cups['inner'], 6)
-			p.seed(cups['inner'], 6)
-			op.seed(cups['outer'], 6) 
-
-
 		if type == 'C2':
 			# fill in columns [13.24]
-			os = Column(self, 'Outer Starboard', None, 3)
-			s = Column(self, 'Starboard', 7, 2)
-			cs = Column(self, 'Center Starboard', 9, 1)
-			cp = Column(self, 'Center Port', 9, 1)
-			p = Column(self, 'Port', 7, 2)
-			op = Column(self, 'Outer Port', None, 3)
+			os = Column(self, 'Outer Starboard', None, 3, ['outer'], 6)
+			s = Column(self, 'Starboard', 7, 2, ['inner'], 6)
+			cs = Column(self, 'Center Starboard', 9, 1, ['center'], 6)
+			cp = Column(self, 'Center Port', 9, 1, ['center'], 6)
+			p = Column(self, 'Port', 7, 2, ['inner'], 6)
+			op = Column(self, 'Outer Port', None, 3, ['outer'], 6)
 
 			os.setAdjacent([s])
 			s.setAdjacent([os,cs])
@@ -300,14 +298,6 @@ class Convoy:
 			op.setAdjacent([p])
 
 			self.columns = [os, s, cs, cp, p, op]
-
-
-			os.seed(cups['outer'], 6)
-			s.seed(cups['inner'], 6)
-			cs.seed(cups['center'], 6)
-			cp.seed(cups['center'], 6)
-			p.seed(cups['inner'], 6)
-			op.seed(cups['outer'], 6) 
 
 		if type == 'Loner':
 			print('Loner not yet implemented')
@@ -452,9 +442,10 @@ class CombatResult:
 		self.subSunk = 0
 		self.subSpotted = 0
 		self.subRTB = 0
+		self.subPromoted = 0
 
 	def printSummary(self):
-		print('Sub',self.sub, 'sunk', self.sunk, 'ships for', self.tons, 'tons. Status:', self.subDamaged, 'damaged', self.subSpotted, 'spotted', self.subSunk, 'sunk', self.subRTB, 'RTB')
+		print('Sub',self.sub, 'sunk', self.sunk, 'ships for', self.tons, 'tons. Status:', self.subDamaged, 'damaged', self.subSpotted, 'spotted', self.subSunk, 'sunk', self.subRTB, 'RTB', 'promoted', self.subPromoted)
 
 	def addSub(self, sub):
 		if sub.isDamaged():
@@ -480,6 +471,7 @@ class CombatResult:
 			self.subSunk += r.subSunk
 			self.subSpotted += r.subSpotted
 			self.subRTB += r.subRTB
+			self.subPromoted += r.subPromoted
 
 
 
@@ -528,7 +520,6 @@ class Sub:
 
 		print('Sub ' + str(self.name) + ' takes damage' + rtbText)
 
-
 		if self.damage > 1:
 			roll = random.randint(0, 9)
 			if roll > self.defenseRating:
@@ -544,7 +535,11 @@ class Sub:
 		self.damage = -1
 		print('Sub ' + str(self.name) + 'sinks')
 
-	def attack(self, convoy):
+	def promoteSkipper(self):
+		self.skipper = min(self.skipper + 1, 2)
+		print('Sub ' + str(self.name) + ' promotes her skipper to level ' + str(self.skipper))
+
+	def attack(self, convoy, combatRound):
 		result = CombatResult(self)
 
 		# get revealed targets in the current and adjacent columns
@@ -574,6 +569,14 @@ class Sub:
 		for r in revealed:
 			r.tdc = drawTDCCounter()
 			print('Target/TDC:', r, r.tdc)
+
+
+		# subtract 1 in the reattack round
+		if combatRound > 1:
+			print('Reattack round -- improving target solutions')
+			for r in revealed:
+				r.tdc = max(-4, r.tdc-1)
+				print('Target/TDC:', r, r.tdc)
 
 
 		targets = []
@@ -1185,10 +1188,29 @@ def attackRound(convoy, subs, combatRound):
 			if r and r.type == 'AC':
 				print('Found aircraft!')
 
-				if air_cover == 'light' and random .randint(0,9) > 4:
+				if air_cover == 'light' and random.randint(0,9) > 4:
 					# replace with new draw
 					print('Light air cover, replacing AC with new draw')
-					print('TODO!')
+					
+					for t in r.column.targets:
+						print(t)
+
+					try:
+						idx = r.column.targets.index(r)
+						print('index:', idx)
+
+
+
+						if idx:
+							new_encounter = random.choice(r.column.draw_cup)
+							r.column.targets[idx] = new_encounter
+							new_encounter.visible = True
+
+							revealed.append(r.column.targets[idx])
+							print('Redrew encounter at position ' + str(idx) + ': ' + str(new_encounter))
+
+					except KeyError:
+						print('FIXME! AC column index could not be found')
 
 			if r and r.type == 'Event':
 				print('Found event, ignoring it')
@@ -1204,13 +1226,13 @@ def attackRound(convoy, subs, combatRound):
 
 		# set tdcs [14.14]
 		seedTDCCup()
-		combatResult = sub.attack(convoy)
+		combatResult = sub.attack(convoy, combatRound)
+		combatResult = convoy.counterattack(sub, combatRound > 1, combatResult)
 
-		reAttack = False
-		if combatRound > 1:
-			reAttack = True
+		if combatResult.tons >= 23 and combatResult.sunk > 2:
+			sub.promoteSkipper()
+			combatResult.subPromoted += 1
 
-		combatResult = convoy.counterattack(sub, reAttack, combatResult)
 
 		attackResults.append(combatResult)
 
@@ -1274,7 +1296,7 @@ def attackConvoy():
 	warperiod = 1
 	convoyType = 'C1'
 
-	for i in range(0, 200):
+	for i in range(0, 2000):
 
 		if i % 50 == 0:
 			seedCups(warperiod)
@@ -1306,6 +1328,10 @@ def attackConvoy():
 		# convoy is large -- check for scatter
 		combatResultRound3 = attackRound(convoy, subs, 2)
 		combatResultRound1.combine([combatResultRound3])
+
+
+
+		print(combatResultRound1)
 
 
 		results.append(combatResultRound1)
