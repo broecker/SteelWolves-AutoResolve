@@ -156,6 +156,33 @@ class Histogram:
 	 	self.findPeak()
 
 
+	def resample(self, newRange):
+	 	oldVals = self.values
+
+	 	self.values = []
+
+	 	def getInterpolatedValue(data, val):
+	 		a = 0
+	 		while data[a][0] < val:
+	 			a += 1
+
+	 			if a == len(data):
+	 				break
+
+
+	 		print('found', data[a])
+		 	return data[a][1]
+
+
+	 	for i in range(newRange[0], newRange[1]):
+	 		print('resampling value ' + str(i) +' to ' + str(getInterpolatedValue(oldVals, i)))
+
+
+
+
+
+
+
 
 if __name__ == '__main__':
 	filename ='c1-wp1.csv'
@@ -191,19 +218,29 @@ if __name__ == '__main__':
 		print('Promoted: %4d' %promoted + '/' + str(count))
 
 
+	if False:
+
+		data1 = loadFile('c1-wp1-1sub.csv')
+		data4 = loadFile('c1-wp1-4sub.csv')
+
+		tons1 = [r.tgtTons for r in data1]
+		tons1.sort
+
+		tons4 = [r.tgtTons for r in data4]
+		tons4.sort
+
+
+		histo1 = Histogram('Tonnage 1', tons1)
+		histo1.printData()
+
+		histo4 = Histogram('Tonnage 4', tons4)
+		histo4.printData()
 
 	data1 = loadFile('c1-wp1-1sub.csv')
-	data4 = loadFile('c1-wp1-4sub.csv')
-
 	tons1 = [r.tgtTons for r in data1]
 	tons1.sort
-
-	tons4 = [r.tgtTons for r in data4]
-	tons4.sort
-
-
 	histo1 = Histogram('Tonnage 1', tons1)
 	histo1.printData()
+	histo1.resample([0,19])
+	histo1.printData()
 
-	histo4 = Histogram('Tonnage 4', tons4)
-	histo4.printData()
