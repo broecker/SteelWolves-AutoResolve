@@ -590,6 +590,21 @@ class Sub:
 				r.tdc = max(-4, r.tdc-1)
 				print('Target/TDC:', r, r.tdc)
 
+		# re-evaluate target priority with the tdcs
+		def getUpdatedTargetPriority(tgt):
+			p = tgt.tons
+			if tgt.damaged:
+				p += int(tgt.tons)
+
+			try:
+				# negative TDC values are good
+				p += tgt.tdc * -1
+			except KeyError:
+				pass
+
+		revealed.sort(key=getUpdatedTargetPriority, reverse=True)
+		print('Updated target priority:', revealed)
+
 
 		targets = []
 
