@@ -107,7 +107,7 @@ class Histogram:
 	 	self.peak = sa2[-1]
 
 		if self.peak[0] == 0 and len(sa2) > 1:
-			nlf = float(self.peak[1]) / len(data)
+			nlf = float(self.peak[1]) / len(self.values)
 			#print('zero-peak:', self.peak[1], '(%0.2f)' % nlf)
 			while self.peak[0] == 0:
 				sa2.pop()
@@ -164,43 +164,46 @@ if __name__ == '__main__':
 		filename =sys.argv[1]
 
 
+	if False:
+		data = loadFile(filename)
 
-	data = loadFile(filename)
+		for r in data:
+			#r.printSummary()
+			pass
 
-	for r in data:
-		r.printSummary()
+		count = len(data)
+		print('Subs')
+		print('-----------------------')
 
-	count = len(data)
+		damaged = sum(r.subsDamaged for r in data if r.subsDamaged > 0)
+		print('Damaged : %4d'  % damaged + '/' + str(count))
 
-	print('Subs')
-	print('-----------------------')
+		sunk = sum(r.subsSunk for r in data if r.subsSunk > 0)
+		print('Sunk    : %4d' % sunk + '/' + str(count))
 
-	damaged = sum(r.subsDamaged for r in data if r.subsDamaged > 0)
-	print('Damaged : %4d'  % damaged + '/' + str(count))
+		rtb = sum(r.subsRTB for r in data if r.subsRTB > 0)
+		print('RTB     : %4d' % rtb + '/' + str(count))
 
-	sunk = sum(r.subsSunk for r in data if r.subsSunk > 0)
-	print('Sunk    : %4d' % sunk + '/' + str(count))
+		spotted = sum(r.subsSpotted for r in data if r.subsSpotted > 0)
+		print('Spotted : %4d' % spotted + '/' + str(count))
 
-	rtb = sum(r.subsRTB for r in data if r.subsRTB > 0)
-	print('RTB     : %4d' % rtb + '/' + str(count))
-
-	spotted = sum(r.subsSpotted for r in data if r.subsSpotted > 0)
-	print('Spotted : %4d' % spotted + '/' + str(count))
-
-	promoted = sum(r.subsPromoted for r in data if r.subsPromoted > 0)
-	print('Promoted: %4d' %promoted + '/' + str(count))
+		promoted = sum(r.subsPromoted for r in data if r.subsPromoted > 0)
+		print('Promoted: %4d' %promoted + '/' + str(count))
 
 
-	tons = [r.tgtTons for r in data]
-	tons.sort
 
-	histo = Histogram('Tonnage', tons)
-	histo.printData()
+	data1 = loadFile('c1-wp1-1sub.csv')
+	data4 = loadFile('c1-wp1-4sub.csv')
 
-	damaged = [r.subsDamaged for r in data]
-	hDmg = Histogram('Damaged', damaged)
-	hDmg.printData()
+	tons1 = [r.tgtTons for r in data1]
+	tons1.sort
 
-	sunk = [r.subsSunk for r in data]
-	hSnk = Histogram('Sunk', sunk)
-	hSnk.printData()
+	tons4 = [r.tgtTons for r in data4]
+	tons4.sort
+
+
+	histo1 = Histogram('Tonnage 1', tons1)
+	histo1.printData()
+
+	histo4 = Histogram('Tonnage 4', tons4)
+	histo4.printData()
