@@ -79,17 +79,19 @@ class Histogram:
 			except KeyError:
 				histo[key] = 1
 
+		HUGE = 1000000
 
-		self.minKey = sys.maxint
-	 	self.maxKey = -sys.maxint - 1
+		self.minKey = HUGE
+		self.maxKey = -HUGE - 1
 
-	 	for r in histo.keys():
+		for r in histo.keys():
 	 		k = int(r)
 	 		self.minKey = min(self.minKey, k)
 	 		self.maxKey = max(self.maxKey, k)
 
-	 	sortedArray = []
-	 	for key in range(self.minKey, self.maxKey):
+		# Mip mapping normal maps
+		sortedArray = []
+		for key in range(self.minKey, self.maxKey):
 
 	 		try:
 	 			val = histo[str(key)]
@@ -98,16 +100,17 @@ class Histogram:
 	 			pass
 
 		self.values = sortedArray
-	 	self.findPeak()
+		self.findPeak()
 
 	def findPeak(self):
 
 	 	# find the peak
-	 	sa2 = sorted(self.values, key=lambda x: x[1])
-	 	self.peak = sa2[-1]
-
+		sa2 = sorted(self.values, key=lambda x: x[1])
+		self.peak = sa2[-1]
+		
 		if self.peak[0] == 0 and len(sa2) > 1:
 			nlf = float(self.peak[1]) / len(self.values)
+			
 			#print('zero-peak:', self.peak[1], '(%0.2f)' % nlf)
 			while self.peak[0] == 0:
 				sa2.pop()
@@ -117,7 +120,7 @@ class Histogram:
 	def printData(self):
 		print(self.name + ' histogram:')
 		print('Peak: ' + str(self.peak))
-	 	print('Keys: [' + str(self.minKey) + ' -> ' + str(self.maxKey) + ']')
+		print('Keys: [' + str(self.minKey) + ' -> ' + str(self.maxKey) + ']')
 		print('Distribution:')
 		for t,c in self.values:
 			s = int(round(float(c) / self.peak[1] * 10))
@@ -145,15 +148,16 @@ class Histogram:
 			self.values.append((int(vals[0]), int(vals[1])))
 
 
-		self.minKey = sys.maxint
-	 	self.maxKey = -sys.maxint - 1
+		HUGE = 1000000
+		self.minKey = HUGE
+		self.maxKey = -HUGE - 1
 
-	 	for r in self.values:
+		for r in self.values:
 	 		k = r[0]
 	 		self.minKey = min(self.minKey, k)
 	 		self.maxKey = max(self.maxKey, k)
 
-	 	self.findPeak()
+		self.findPeak()
 
 
 	def resample(self, newRange):
@@ -186,6 +190,9 @@ class Histogram:
 
 if __name__ == '__main__':
 	filename ='c1-wp1.csv'
+
+	print(dir(sys))
+	print(sys.version)
 
 	if len(sys.argv) > 1:
 		filename =sys.argv[1]
