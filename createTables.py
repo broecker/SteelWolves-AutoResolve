@@ -161,30 +161,35 @@ class Histogram:
 
 
 	def resample(self, newRange):
-	 	oldVals = self.values
 
-	 	self.values = []
+	 	print('Resampling to new key range:', newRange)
 
-	 	def getInterpolatedValue(data, val):
-	 		a = 0
-	 		while data[a][0] < val:
-	 			a += 1
+	 	def findValue(val):
+	 		for i in self.values:
+	 			if val == i[0]:
+	 				return i
+	 		else:
+	 			return None
 
-	 			if a == len(data):
-	 				break
+	 	newHisto = []
 
-
-	 		print('found', data[a])
-		 	return data[a][1]
-
-
+	 	# 1. Fill in existing values
 	 	for i in range(newRange[0], newRange[1]):
-	 		print('resampling value ' + str(i) +' to ' + str(getInterpolatedValue(oldVals, i)))
+	 		newHisto.append(findValue(i))
 
+	 	# 2. interpolate for missing values
+	 	for i in range(newRange[0]+1, newRange[1]-1):
+	 		if newHisto[i] == None:
+	 			val = int((newHisto[i-1][1] + newHisto[i+1][1]) * 0.5)
+	 			newHisto[i] = (i, val)
 
+	 	# 3. Handle edge cases - TODO
+	 	if newHisto[0] == None:
+	 		newHisto[0] = newHisto[1]
+	 	if newHisto[-1] == None:
+	 		newHisto[-1] = newHisto[-2]
 
-
-
+	 	self.values = newHisto
 
 
 
