@@ -53,7 +53,10 @@ def dieRoller(dice, face, drm, count, showStats):
 		roll += drm
 		roll = max(0, roll)
 
-		rolls[roll] += 1
+		try:
+			rolls[roll] += 1
+		except IndexError:
+			rolls.append(1)
 
 	maxRoll = 0
 	minRoll = count

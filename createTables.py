@@ -22,6 +22,7 @@
 # SOFTWARE.
 
 import sys
+import dieroller
 
 class Result:
 	def __init__(self, data):
@@ -159,23 +160,24 @@ class Histogram:
 
 		self.findPeak()
 
+	def findValue(self, val):
+		for i in self.values:
+			if val == i[0]:
+				return i
+		else:
+			return None
+
+
 
 	def resample(self, newRange):
 
 	 	print('Resampling to new key range:', newRange)
 
-	 	def findValue(val):
-	 		for i in self.values:
-	 			if val == i[0]:
-	 				return i
-	 		else:
-	 			return None
-
 	 	newHisto = []
 
 	 	# 1. Fill in existing values
 	 	for i in range(newRange[0], newRange[1]):
-	 		newHisto.append(findValue(i))
+	 		newHisto.append(self.findValue(i))
 
 	 	# 2. interpolate for missing values
 	 	for i in range(newRange[0]+1, newRange[1]-1):
@@ -192,7 +194,80 @@ class Histogram:
 	 	self.values = newHisto
 
 	def findD10DRM(self):
-		
+
+		scores = []
+
+		for drm in range(-20, 20):
+			result = dieroller.dieRoller(2, 10, drm, 2000, False)
+
+			# subtract result from current and build a score
+			score = 0
+
+			peak = 0
+			for r in result:
+				v = self.findValue(r[0])
+				if v:
+					score += abs(v[0] - r[1])
+				else:
+					score += r[1]
+
+				if r[1] > peak:
+					peak = r[0]
+
+			scores.append((drm, score, peak))
+
+
+		bestResult = dieroller.dieRoller(3, 12, -10, 2000, False)
+
+
+		def findValueInResult(val):
+			for i in bestResult:
+				if i[0] == val:
+					return i
+			return None
+
+		resultPeak = 0
+		for i in bestResult:
+			resultPeak = max(resultPeak, i[1])
+
+		# print both distributions in the form
+		# [original] [roll] [reconstructed]
+		# *** [0000] [roll] [0000] ***
+		for roll in range(min(bestResult[0][0], self.minKey), max(bestResult[-1][0], self.maxKey)):
+			pass
+
+
+			leftValue = self.findValue(roll)
+			if leftValue:
+				leftValue = leftValue[1]
+			else:
+				leftValue = 0
+
+			rightValue = findValueInResult(roll)
+			if rightValue:
+				rightValue = rightValue[1]
+			else:
+				rightValue = 0
+
+
+			sl = int(round(float(leftValue) / self.peak[1] * 10))
+			sl = min(sl, 10)
+			sl = sl * '*'
+
+			sr = int(round(float(rightValue) / resultPeak * 10))
+			sr = sr * '*'
+
+			
+
+			print( '% 10s' % sl + ' %4d' % leftValue + ' %02d ' % roll + '%4d ' % rightValue + sr)
+
+
+
+
+
+
+
+
 
 
 if __name__ == '__main__':
@@ -258,3 +333,4 @@ if __name__ == '__main__':
 	histo1.resample([0,19])
 	histo1.printData()
 
+	histo1.findD10DRM()
