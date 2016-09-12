@@ -24,13 +24,14 @@
 import random
 
 
-def dieRoller(dice, face, drm, count, showStats):
+def dieRoller(dice, face, drm, count, showStats, hasZero=True):
 	''' Rolls a lot of dice and presents the result.
 		Dice: the number of dice to roll
 		face: the number of faces of each die (eg 6, 10, 20, ....)
 		drm: the final DRM applied to the result
 		count: how many die rolls should be made
 		showStats: whether the resulting distribution should be printed
+		hasZero: does the die have a '0' on its face? if not the die range is [1..face]
 		returns a list with tuples in the form of (result, count). this result
 		is _not_ normalized!
 	''' 
@@ -40,6 +41,13 @@ def dieRoller(dice, face, drm, count, showStats):
 	trimLeft = False
 	trimRight = True
 
+	def makeRoll():
+		if hasZero:
+			return random.randint(0, face-1)
+		else:
+			return random.randint(1, face);
+
+
 	rolls = []
 	for i in range(0, highEnd):
 		rolls.append(0)
@@ -48,7 +56,7 @@ def dieRoller(dice, face, drm, count, showStats):
 	for i in range(0,count):
 		roll = 0
 		for d in range(0, dice):
-			roll += random.randint(0, face-1)
+			roll += makeRoll()
 
 		roll += drm
 		roll = max(0, roll)

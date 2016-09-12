@@ -193,6 +193,21 @@ class Histogram:
 
 	 	self.values = newHisto
 
+	def getCompressed(self):
+		maxLength = 10
+		result = []
+
+		for v in self.values:
+			u = int(round(float(v[1]) / self.peak[1] * 10))
+			u = min(u, 10)
+
+			result.append((v[0], u))
+
+
+		print(result)
+		return result
+
+
 	def findD10DRM(self):
 
 		scores = []
@@ -217,7 +232,11 @@ class Histogram:
 			scores.append((drm, score, peak))
 
 
-		bestResult = dieroller.dieRoller(3, 12, -10, 2000, False)
+		bestResult = dieroller.dieRoller(2, 6, 0, 2000, False, False)
+
+
+		print('compressing ... ')
+		self.getCompressed()
 
 
 		def findValueInResult(val):
