@@ -23,14 +23,18 @@
 
 import random
 
-if __name__ == '__main__':
 
-	random.seed()
+def dieRoller(dice, face, drm, count, showStats):
+	''' Rolls a lot of dice and presents the result.
+		Dice: the number of dice to roll
+		face: the number of faces of each die (eg 6, 10, 20, ....)
+		drm: the final DRM applied to the result
+		count: how many die rolls should be made
+		showStats: whether the resulting distribution should be printed
+		returns a list with tuples in the form of (result, count). this result
+		is _not_ normalized!
+	''' 
 
-	drm = 0
-	dice = 2
-	face = 10
-	count = 10000
 	highEnd = int(dice * face * 1.5) 
 
 	trimLeft = False
@@ -71,15 +75,31 @@ if __name__ == '__main__':
 			rolls.pop(0)
 			offset += 1
 
-	print(count, 'rolls of %dd' % dice + '%d' % face + ' with DRM %+d' % drm)
+	if showStats:
+		print(count, 'rolls of %dd' % dice + '%d' % face + ' with DRM %+d' % drm)
+		for i in range(0, len(rolls)):
+
+			s = "%4d" % rolls[i] + ' '
+			
+			c = round(float(rolls[i]) / maxRoll * 10)
+			s += c * '*'
+
+			if rolls[i] == maxRoll:
+				s += ' <- Peak'
+
+			print("%02d " % (i + offset), s)
+
+	result = []
 	for i in range(0, len(rolls)):
+		result.append((i + offset, rolls[i]))
 
-		s = "%4d" % rolls[i] + ' '
-		
-		c = round(float(rolls[i]) / maxRoll * 10)
-		s += c * '*'
+	return result
 
-		if rolls[i] == maxRoll:
-			s += ' <- Peak'
+if __name__ == '__main__':
 
-		print("%02d " % (i + offset), s)
+	drm = 0
+	dice = 2
+	face = 10
+	count = 10000
+
+	dieRoller(dice, face, drm, count, True)

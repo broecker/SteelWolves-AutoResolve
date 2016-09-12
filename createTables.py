@@ -191,6 +191,8 @@ class Histogram:
 
 	 	self.values = newHisto
 
+	def findD10DRM(self):
+		
 
 
 if __name__ == '__main__':
