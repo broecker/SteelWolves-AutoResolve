@@ -360,6 +360,25 @@ class CombatResult:
 			if sub.rtb:
 				self.subRTB += 1 
 
+
+	def normalize(self):
+		if self.subSunk > 0:
+			self.subSunk = 1
+			self.subDamaged = 0
+			self.subSpotted = 0
+			self.subRTB = 0
+		if self.subDamaged > 0:
+			self.subDamaged = 1
+		if self.subRTB > 0:
+			self.subRTB = 1
+		if self.subSpotted > 0:
+			self.subSpotted = 1
+		if self.subPromoted > 0:
+			self.subPromoted = 1
+
+
+
+
 	def combine(self, results):
 
 		for r in results:
@@ -828,24 +847,26 @@ def summarizeResults(results):
 	minSunk = 100
 	maxSunk = 0
 	meanSunk = 0.0
+	totalSunk = 0
 	for s in shipsSunk:
-		meanSunk += s
+		totalSunk += s
 		minSunk = min(minSunk, s)
 		maxSunk = max(maxSunk, s)
 
 	devSunk = pstdev(shipsSunk)
-	meanSunk /= len(shipsSunk)
+	meanSunk = totalSunk / len(shipsSunk)
 
 	minTons = 100
 	maxTons = 0
 	meanTons = 0.0
+	totalTons = 0.0
 	for t in shipsTonnage:
-		meanTons += t
+		totalTons += t
 		minTons = min(minTons, t)
 		maxTons = max(maxTons, t)
 
 	devTons = pstdev(shipsTonnage)
-	meanTons /= len(shipsTonnage)
+	meanTons = totalTons / len(shipsTonnage)
 
 
 
@@ -855,8 +876,8 @@ def summarizeResults(results):
 	print('Subs RTB:', subsRTB, '/', len(results))
 	print('Subs promoted:', subsPromoted, '/', len(results))
 
-	print('Ships sunk:', meanSunk, '[', minSunk, '-', maxSunk, '], mean', meanSunk, '/', devSunk)
-	print('Ships tonnage:', meanTons, '[', minTons, '-', maxTons, '] mean', meanTons, '/', devTons)
+	print('Ships sunk:', totalSunk, '[', minSunk, '-', maxSunk, '], mean', meanSunk, '/', devSunk)
+	print('Ships tonnage:', totalTons, '[', minTons, '-', maxTons, '] mean', meanTons, '/', devTons)
 
 
 def writeResults(filename, results):
@@ -1242,7 +1263,7 @@ def attackConvoy():
 		convoy.straggle_level = base_straggle_level
 
 		# create the single(!) sub
-		sub = Sub('U-'+str(i), 5, 3, 3, skipper)
+		sub = Sub('U-'+str(i), 3, 3, 3, skipper)
 		convoy.placeSub(sub)
 
 		# first round of attack
@@ -1295,32 +1316,29 @@ def attackConvoy():
 				defense = counterAttack(convoy, sub, 2)
 				result.combine([result3, defense])
 
-
-
-
-
 		if sub.eligibleForPromotion():
 			print('Sub eligible for promotion (' + str(sub.targetsSunk) +' tgts, ' + str(sub.tonsSunk) + ' tons)' )
 			result.subPromoted = 1
 			sub.promoteSkipper()
 
-		result.printSummary()
+		result.normalize()
 		results.append(result)
 
 	#for r in results:
 	#	r.printSummary() 
 
 	summarizeResults(results)
-	#writeResults('c1-wp1.csv', results)
+	writeResults('c1-wp1.csv', results)
 	#createTable(results)
 
-	r2 = [r for r in results if r.subPromoted > 0]
-	if len(r2) > 0:
-		print('Skipper promitions:')
-		for r in r2:
-			r.printSummary()
-	else:
-		print('No skippers promoted.')
+
+	#r2 = [r for r in results if r.subPromoted > 0]
+	#if len(r2) > 0:
+	#	print('Skipper promotions:')
+	#	for r in r2:
+	#		r.printSummary()
+	#else:
+	#	print('No skippers promoted.')
 
 if __name__ == '__main__':
 	random.seed()
