@@ -1102,13 +1102,15 @@ def counterAttack(convoy, sub, combatRound):
 	print('Counterattack, red boxes:', red_boxes, 'global asw:', asw_value)
 	print('Total ASW', asw, 'defense', defense, 'diff', diff)
 
+	result = CombatResult(sub) 
+
 	if diff < 0:
 		print('No counterattack, diff:', diff)
 	else:
 		# counterattack
 		roll = random.randint(0,9)
 		roll += sub.isDamaged()
-		if reattack:
+		if combatRound > 1:
 			roll += 1
 		if sub.spotted:
 			roll += 1
@@ -1251,36 +1253,58 @@ def attackConvoy():
 		targets = selectTargets(targets, sub)
 		result = attackTargets(convoy, targets, sub)
 
+		defense = counterAttack(convoy, sub, 1)
+		result.combine([defense])
 
 
-
-		#combatResultRound1 = counterAttack(convoy, sub, 1, combatResultRound1)
-		#subs = withdrawSubs(subs, 1)
-
-		if False:
+		# determine if we go into a reattack round
+		if not (sub.damage > 0 or sub.rtb):
 			# [14.4] Re-attack rounds
 
 			# [29.3] Check for straggle increase
-			increaseStraggle(convoy, combatResultRound1.sunk+combatResultRound1.damaged, 1)
+			increaseStraggle(convoy, result.sunk+result.damaged, 1)
 
-			combatResultRound2 = attackRound(convoy, subs, 2)
-			combatResultRound1.combine([combatResultRound2])
+			# try to move up one column
+			# TODO - Implement me
 
 
-			# [14.4] Multiple Re-attack rounds
-			subs = withdrawSubs(subs, 2)
+			# second round of attack
+			targets = revealCounters(convoy, sub)
 
-			increaseStraggle(convoy, combatResultRound1.sunk+combatResultRound1.damaged, 2)
+			seedTDCCup()
+			targets = placeTDC(targets, sub, 2)
+			targets = selectTargets(targets, sub)
+			result2 = attackTargets(convoy, targets, sub)
 
-			# convoy is large -- check for scatter
-			combatResultRound3 = attackRound(convoy, subs, 2)
-			combatResultRound1.combine([combatResultRound3])
+			defense = counterAttack(convoy, sub, 2)
+			result.combine([result2, defense])
+
+
+			# possible 3rd round of combat
+			if not (sub.damage > 0 or sub.rtb) and sub.skipper > 0:
+
+				increaseStraggle(convoy, result2.sunk+result2.damage>0, 2)
+
+				targets = revealCounters(convoy, sub)
+				seedTDCCup()
+
+				targets = placeTDC(targets, sub, 2)
+				targets = selectTargets(targets, sub)
+				result3 = attackTargets(convoy, targets, sub)
+
+				defense = counterAttack(convoy, sub, 2)
+				result.combine([result3, defense])
+
+
+
 
 
 		if sub.eligibleForPromotion():
-			combatResultRound1.subPromoted += 1
+			print('Sub eligible for promotion (' + str(sub.targetsSunk) +' tgts, ' + str(sub.tonsSunk) + ' tons)' )
+			result.subPromoted = 1
 			sub.promoteSkipper()
 
+		result.printSummary()
 		results.append(result)
 
 	#for r in results:
@@ -1290,12 +1314,7 @@ def attackConvoy():
 	#writeResults('c1-wp1.csv', results)
 	#createTable(results)
 
-	tmp = [r for r in results if r.sunk >= 3 and r.tons > 23]
-	for t in tmp:
-		t.printSummary()
-
 	r2 = [r for r in results if r.subPromoted > 0]
-
 	if len(r2) > 0:
 		print('Skipper promitions:')
 		for r in r2:
