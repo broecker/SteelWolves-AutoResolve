@@ -28,15 +28,16 @@ import math
 cups = {}
 
 # global values
-torpvalue = -1
-bdienst = 0
-asw_value = 0
-air_cover = 'light'
-base_straggle_level = 1 
+class GlobalValues:
+	def __init__(self):
+		self.torp_value = -1
+		self.bdienst = 0
+		self.asw_value = 0
+		self.air_cover = 'light'
+		self.base_straggle_level = 1
+		self.red_dots = 0
 
-# current ops area
-red_boxes = 0
-
+globals = GlobalValues()
 
 
 class Encounter:
@@ -61,7 +62,7 @@ class Encounter:
 			return self.type + ' (' + str(self.defense) + '-' + str(self.asw) + ')'
 
 	def rollForDamage(self, sub):
-		roll = random.randint(0, 9) + torpvalue
+		roll = random.randint(0, 9) + globals.torp_value
 		result = 'none'
 
 		if self.tons <= 4:
@@ -135,7 +136,7 @@ class Encounter:
 				self.column = None
 
 
-		print('Rolling damage for', self, ':', roll, '(', torpvalue, 'torp value) ->', result)
+		print('Rolling damage for', self, ':', roll, '(', globals.torp_value, 'torp value) ->', result)
 		return result
 
 
@@ -994,7 +995,7 @@ def attackTargets(convoy, targets, sub):
 	# 14.15 targeted escorts
 
 	# 14.16 attack
-	attackValue = sub.attackRating + sub.skipper + torpvalue + convoy.straggle_level
+	attackValue = sub.attackRating + sub.skipper + globals.torp_value + convoy.straggle_level
 
 	for t in targets:
 		aswValue = sub.column.getASWValue()
@@ -1009,7 +1010,7 @@ def attackTargets(convoy, targets, sub):
 			damageMod = -1
 
 		print('Combat vs', t)
-		print('Attack :', attackValue, '[', sub.attackRating, 'attack',sub.skipper,'skipper',torpvalue,' torp rating', convoy.straggle_level, 'convoy straggle]')
+		print('Attack :', attackValue, '[', sub.attackRating, 'attack',sub.skipper,'skipper',globals.torp_value,' torp rating', convoy.straggle_level, 'convoy straggle]')
 		print('Defense:', aswValue, '[', aswValue, 'ASW', t.tdc,'TDC', columnMod, 'column mod',damageMod, ' damaged]')
 		aswValue = aswValue + t.tdc + columnMod + damageMod
 
@@ -1111,8 +1112,8 @@ def counterAttack(convoy, sub, combatRound):
 				if t and t.visible and (t.type == 'AC' or t.type == 'CV'):
 					asw += t.asw
 
-	asw += red_boxes
-	asw += asw_value
+	asw += globals.red_dots
+	asw += globals.asw_value
 
 
 	defense = sub.defenseRating + sub.skipper
@@ -1120,7 +1121,7 @@ def counterAttack(convoy, sub, combatRound):
 		defense -= 1
 
 	diff = asw - defense
-	print('Counterattack, red boxes:', red_boxes, 'global asw:', asw_value)
+	print('Counterattack, red boxes:', globals.red_dots, 'global asw:', globals.asw_value)
 	print('Total ASW', asw, 'defense', defense, 'diff', diff)
 
 	result = CombatResult(sub) 
@@ -1260,7 +1261,7 @@ def attackConvoy():
 
 		# create convoy and subs
 		convoy = Convoy(convoyType)
-		convoy.straggle_level = base_straggle_level
+		convoy.straggle_level = globals.base_straggle_level
 
 		# create the single(!) sub
 		sub = Sub('U-'+str(i), 3, 3, 3, skipper)
