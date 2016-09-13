@@ -885,6 +885,8 @@ def diligentEscortTable(sub):
 
 
 def revealCounters(convoy, sub):
+	sub.column.revealCounters(sub.tacRating)
+
 	# get revealed targets in the current and adjacent columns
 	revealed = sub.column.getVisibleTargets()
 	for a in sub.column.adjacent:
@@ -924,6 +926,7 @@ def placeTDC(revealed, sub, combatRound):
 
 	# re-evaluate target priority with the tdcs
 	def getUpdatedTargetPriority(tgt):
+
 		p = tgt.tons
 		if tgt.damaged:
 			p += int(tgt.tons)
@@ -932,7 +935,11 @@ def placeTDC(revealed, sub, combatRound):
 			# negative TDC values are good
 			p += tgt.tdc * -1
 		except KeyError:
-			pass
+			return -100
+
+		return p
+
+	print(revealed)
 
 	revealed.sort(key=getUpdatedTargetPriority, reverse=True)
 	print('Updated target priority:', revealed)
