@@ -332,104 +332,6 @@ class Convoy:
 		return math.ceil(a)
 
 
-	def counterattack(self, sub, reattack, result):
-		# 14.2
-		# totalASW = self.getTotalASWValue()
-
-		# get asw value in current and adjacent columns
-		immediateColumns = [sub.column] + sub.column.adjacent
-		asw = sum(c.getASWValue() for c in immediateColumns)
-
-		# find remote available asw values from aircraft or cvs
-		for c in self.columns:
-			if c not in immediateColumns:
-				for t in c.targets:
-					if t and t.visible and (t.type == 'AC' or t.type == 'CV'):
-						asw += t.asw
-
-		asw += red_boxes
-		asw += asw_value
-
-
-		defense = sub.defenseRating + sub.skipper
-		if sub.inexperienced:
-			defense -= 1
-
-		diff = asw - defense
-		print('Counterattack, red boxes:', red_boxes, 'global asw:', asw_value)
-		print('Total ASW', asw, 'defense', defense, 'diff', diff)
-
-		if diff < 0:
-			print('No counterattack, diff:', diff)
-		else:
-			# counterattack
-			roll = random.randint(0,9)
-			roll += sub.isDamaged()
-			if reattack:
-				roll += 1
-			if sub.spotted:
-				roll += 1
-
-
-			if roll > 12:
-				roll = 12
-
-			if asw > 8:
-				asw = 8
-			asw = int(asw)
-
-			print('Counterattack roll', roll, 'with asw', asw)
-			# counterattack table [14.2C]
-			# format: [asw] ([spotted], [damaged], [damagedRTB], [damagedRTB+], [sunk-], [sunk])
-			table =	(	([9], [10], [11], [], [], [12]),
-						([8], [9,10], [], [11], [], [12]),
-						([8], [9,10], [], [11], [], [12]),
-						([7], [8,9], [], [10], [], [11,12]),
-						([7], [8,9], [], [10], [], [11,12]),
-						([4,5], [6,7], [8], [9], [10], [11,12]),
-						([4,5], [6,7], [8], [9], [10], [11,12]),
-						([3,4], [5,6], [7], [8], [9],[10,11,12]),
-						([2,3], [4,5], [], [6,7], [8], [9,10,11,12])
-					)
-
-			row = table[asw]
-			
-			if roll < row[0][0]:
-				print('No effect.')
-			else:
-
-				if roll in row[0]:
-					sub.spotted = True
-					print('Sub', sub, 'spotted')
-
-				if roll in row[1]:
-					sub.takeDamage(False)
-				if roll in row[2]:
-					sub.takeDamage(True)
-
-				if roll in row[3]:
-					roll2 = random.randint(0, 9)
-					if roll2 >= 7:
-						sub.sink()
-					else:
-						sub.takeDamage(True)
-
-				if roll in row[4]:
-					roll2 = random.randint(0,9)
-					if roll2 >= 4:
-						sub.sink()
-					else:
-						sub.takeDamage(True)
-
-				if roll in row[5]:
-					sub.sink()
-
-
-				result.addSub(sub)
-
-		return result
-
-
 class CombatResult:
 	'''Describes and stores the outcome of a single sub vs convoy attack'''
 	def __init__(self, sub):
@@ -550,135 +452,6 @@ class Sub:
 	def promoteSkipper(self):
 		self.skipper = min(self.skipper + 1, 2)
 		print('Sub ' + str(self.name) + ' promotes her skipper to level ' + str(self.skipper))
-
-	def attack(self, convoy, combatRound):
-		result = CombatResult(self)
-
-		# get revealed targets in the current and adjacent columns
-		revealed = self.column.getVisibleTargets()
-		for a in self.column.adjacent:
-			revealed += a.getVisibleTargets()
-
-
-		tdcCount = min(len(revealed), self.tacRating)
-
-
-		print('Sub', self.name, 'has', len(revealed), 'potential targets, placing', tdcCount, 'TDC markers, tactical rating:', self.tacRating)
-		
-
-
-		# sorts targets by tonnage and if they are damaged
-		def getTargetPriority(tgt):
-			p = tgt.tons;
-			if tgt.damaged:
-				p += int(tgt.tons/2)
-			return p
-
-		revealed.sort(key=getTargetPriority, reverse=True)
-		revealed = revealed[0:tdcCount]
-
-		# set TDC markers [14.14]
-		for r in revealed:
-			r.tdc = drawTDCCounter()
-			print('Target/TDC:', r, r.tdc)
-
-
-		# subtract 1 in the reattack round
-		if combatRound > 1:
-			print('Reattack round -- improving target solutions')
-			for r in revealed:
-				r.tdc = max(-4, r.tdc-1)
-				print('Target/TDC:', r, r.tdc)
-
-		# re-evaluate target priority with the tdcs
-		def getUpdatedTargetPriority(tgt):
-			p = tgt.tons
-			if tgt.damaged:
-				p += int(tgt.tons)
-
-			try:
-				# negative TDC values are good
-				p += tgt.tdc * -1
-			except KeyError:
-				pass
-
-		revealed.sort(key=getUpdatedTargetPriority, reverse=True)
-		print('Updated target priority:', revealed)
-
-
-		targets = []
-
-		# split combat value in 4's and assign targets [14.15]
-		cv = self.attackRating
-		tdcIndex = 0
-
-		while cv > 0 and len(revealed) > 0 and tdcIndex < len(revealed):
-			# place a TDC on a counter
-			
-			r = revealed[tdcIndex]
-			r.tdc = drawTDCCounter()
-			targets.append(r)
-
-			tdcIndex += 1
-			cv -= 4 
-
-
-		# 14.15 targeted escorts
-
-		# 14.16 attack
-		attackValue = self.attackRating + self.skipper + torpvalue + convoy.straggle_level
-	
-		for t in targets:
-			aswValue = self.column.getASWValue()
-			for a in self.column.adjacent:
-				aswValue += a.getASWValue()
-
-			columnMod = 0
-			if self.column != t.column:
-				columnMod = 1
-			damageMod = 0
-			if t.damaged:
-				damageMod = -1
-
-			print('Combat vs', t)
-			print('Attack :', attackValue, '[', self.attackRating, 'attack',self.skipper,'skipper',torpvalue,' torp rating', convoy.straggle_level, 'convoy straggle]')
-			print('Defense:', aswValue, '[', aswValue, 'ASW', t.tdc,'TDC', columnMod, 'column mod',damageMod, ' damaged]')
-			aswValue = aswValue + t.tdc + columnMod + damageMod
-
-
-			diff = attackValue - aswValue
-			roll = random.randint(0, 9)
-			if self.inexperienced:
-				roll += 1
-
-			if roll <= diff:
-				print('Diff:',diff,'Roll:', roll, 'Target hit')
-
-				# consult attack results table here
-				d = t.rollForDamage(self)
-
-				if d == 'sunk':
-					result.sunk += 1
-					result.tons += t.tons
-
-					self.claimTarget(t)
-
-				if d == 'damage':
-					result.damaged += 1
- 
-
-
-			else:
-				print('Diff:',diff,'Roll:', roll, 'Target missed')
-
-		# remove tdc markers again
-		for r in revealed:
-			r.tdc = None
-
-
-
-		return result
-
 
 class Wolfpack:
 	def __init__(self, name, subs):
@@ -1086,100 +859,6 @@ def summarizeResults(results):
 	print('Ships tonnage:', meanTons, '[', minTons, '-', maxTons, '] mean', meanTons, '/', devTons)
 
 
-def createTable(results):
-	'''This method tries to fit the result data with a standard distribution of
-		lots of 2d10 rolls and create a table from it.'''
-	# this is based on a 2d10 distribution:
-	# 2d10 - relative probability
-	# 00 	0.01
-	# 01 	0.02
-	# 02 	0.03
-	# 03 	0.04
-	# 04 	0.05
-	# 05 	0.06
-	# 06 	0.07
-	# 07 	0.08
-	# 08 	0.09
-	# 09 	0.10
-	# 10 	0.09
-	# 11 	0.08
-	# 12 	0.07
-	# 13 	0.06
-	# 14 	0.05
-	# 15 	0.04
-	# 16 	0.03
-	# 17 	0.02
-	# 18 	0.01
-
-	# first, sort the data by tons sunk
-	results = sorted(results, key=lambda r: r.tons)
-
-	tonnage = {}
-
-	for r in results:
-		t = str(r.tons)
-		try:
-			tonnage[t] += 1
-		except KeyError:
-			tonnage[t] = 1
-
-	sortedTons = []
-	for tons, count in tonnage.items():
-		sortedTons.append((int(tons),count))
-	sortedTons = sorted(sortedTons, key=lambda t: t[0])
-
-	minTons = 100
-	maxTons = 0
-
-	minResult = 100
-	maxResult = 0
-
-	allTons = 0
-	allResults = 0
-
-	for st in sortedTons:
-		minTons = min(minTons, st[0])
-		maxTons = max(maxTons, st[0])
-		minResult = min(minResult, st[1])
-		maxResult = max(maxResult, st[1])
-
-		allTons += st[0]
-		allResults += st[1]
-
-	
-
-	# find the peak
-	st2 = sorted(sortedTons, key=lambda x:x[1])
-	peak = st2[-1]
-	#print('Peak:', peak)
-
-	if peak[0] == 0:
-		nlf = float(peak[1]) / len(results)
-		print('0t-peak:', peak[1], '(%0.2f)' % nlf)
-		while peak[0] == 0:
-			st2.pop()
-			peak = st2[-1]		
-
-	print('Peak:', peak)
-
-
-	print('Items:', len(sortedTons))
-	print('Range:', minTons,'->',maxTons)
-	print('Result range:', minResult, '->', maxResult)
-
-
-	print('Attack tonnage distribution:')
-	for t,c in sortedTons:
-		s = int(round(float(c) / peak[1] * 10))
-		s = s * '*'
-
-		if c == peak[1]:
-			s += ' <- Peak'
-
-		print(t,c,s)
-
-
-
 def writeResults(filename, results):
 
 	f = open(filename, 'w')
@@ -1205,77 +884,288 @@ def diligentEscortTable(sub):
 		sub.sink()
 
 
-def attackRound(convoy, subs, combatRound):
+def revealCounters(convoy, sub):
+	# get revealed targets in the current and adjacent columns
+	revealed = sub.column.getVisibleTargets()
+	for a in sub.column.adjacent:
+		revealed += a.getVisibleTargets()
 
-	if len(subs) == 0:
-		return
+	tdcCount = min(len(revealed), sub.tacRating)
 
-	attackResults = []
-	for sub in subs:
-		# reveal counters [14.12]
-		revealed = sub.revealCounters()
+	print('Sub', sub.name, 'has', len(revealed), 'potential targets, placing', tdcCount, 'TDC markers, tactical rating:', sub.tacRating)
+	return revealed
 
+def placeTDC(revealed, sub, combatRound):
+
+	# sorts targets by tonnage and if they are damaged
+	def getTargetPriority(tgt):
+		p = tgt.tons;
+		if tgt.damaged:
+			p += int(tgt.tons/2)
+		return p
+
+
+	tdcCount = min(len(revealed), sub.tacRating)
+
+	revealed.sort(key=getTargetPriority, reverse=True)
+	revealed = revealed[0:tdcCount]
+
+	# set TDC markers [14.14]
+	for r in revealed:
+		r.tdc = drawTDCCounter()
+		print('Target/TDC:', r, r.tdc)
+
+		# subtract 1 in the reattack round
+	if combatRound > 1:
+		print('Reattack round -- improving target solutions')
 		for r in revealed:
-			if r and r.type == 'AC':
-				print('Found aircraft!')
+			r.tdc = max(-4, r.tdc-1)
+			print('Target/TDC:', r, r.tdc)
 
-				if air_cover == 'light' and random.randint(0,9) > 4:
-					# replace with new draw
-					print('Light air cover, replacing AC with new draw')
-					
-					for t in r.column.targets:
-						print(t)
+	# re-evaluate target priority with the tdcs
+	def getUpdatedTargetPriority(tgt):
+		p = tgt.tons
+		if tgt.damaged:
+			p += int(tgt.tons)
 
-					try:
-						idx = r.column.targets.index(r)
-						print('index:', idx)
+		try:
+			# negative TDC values are good
+			p += tgt.tdc * -1
+		except KeyError:
+			pass
 
+	revealed.sort(key=getUpdatedTargetPriority, reverse=True)
+	print('Updated target priority:', revealed)
 
-
-						if idx:
-							new_encounter = random.choice(r.column.draw_cup)
-							r.column.targets[idx] = new_encounter
-							new_encounter.visible = True
-
-							revealed.append(r.column.targets[idx])
-							print('Redrew encounter at position ' + str(idx) + ': ' + str(new_encounter))
-
-					except ValueError:
-						print('FIXME! AC column index could not be found')
-
-			if r and r.type == 'Event':
-				print('Found event, ignoring it')
-
-				# ignore events?
-
-			if r and r.diligent:
-				print('Found diligent escort')
-				if not sub.crashDive():
-					# roll for damage from diligent escort
-					diligentEscortTable(sub)
+	return revealed
 
 
-		# set tdcs [14.14]
-		seedTDCCup()
-		combatResult = sub.attack(convoy, combatRound)
-		combatResult = convoy.counterattack(sub, combatRound > 1, combatResult)
+def selectTargets(revealed, sub):
+	targets = []
 
-		if combatResult.tons >= 23 and combatResult.sunk > 2:
-			sub.promoteSkipper()
-			combatResult.subPromoted += 1
+	# split combat value in 4's and assign targets [14.15]
+	cv = sub.attackRating
+	tdcIndex = 0
+
+	while cv > 0 and len(revealed) > 0 and tdcIndex < len(revealed):
+		# place a TDC on a counter
+		
+		r = revealed[tdcIndex]
+		r.tdc = drawTDCCounter()
+		targets.append(r)
+
+		tdcIndex += 1
+		cv -= 4 
+
+	return targets
 
 
-		attackResults.append(combatResult)
+def attackTargets(convoy, targets, sub):
+	result = CombatResult(sub)
 
-	if len(attackResults) == 1:
-		return attackResults[0]
+	# 14.15 targeted escorts
+
+	# 14.16 attack
+	attackValue = sub.attackRating + sub.skipper + torpvalue + convoy.straggle_level
+
+	for t in targets:
+		aswValue = sub.column.getASWValue()
+		for a in sub.column.adjacent:
+			aswValue += a.getASWValue()
+
+		columnMod = 0
+		if sub.column != t.column:
+			columnMod = 1
+		damageMod = 0
+		if t.damaged:
+			damageMod = -1
+
+		print('Combat vs', t)
+		print('Attack :', attackValue, '[', sub.attackRating, 'attack',sub.skipper,'skipper',torpvalue,' torp rating', convoy.straggle_level, 'convoy straggle]')
+		print('Defense:', aswValue, '[', aswValue, 'ASW', t.tdc,'TDC', columnMod, 'column mod',damageMod, ' damaged]')
+		aswValue = aswValue + t.tdc + columnMod + damageMod
+
+		diff = attackValue - aswValue
+		roll = random.randint(0, 9)
+		if sub.inexperienced:
+			roll += 1
+
+		if roll <= diff:
+			print('Diff:',diff,'Roll:', roll, 'Target hit')
+
+			# consult attack results table here
+			d = t.rollForDamage(sub)
+
+			if d == 'sunk':
+				result.sunk += 1
+				result.tons += t.tons
+
+				sub.claimTarget(t)
+
+			if d == 'damage':
+				result.damaged += 1
+
+		else:
+			print('Diff:',diff,'Roll:', roll, 'Target missed')
+
+	# remove tdc markers again
+	for r in targets:
+		r.tdc = None
+
+
+	return result
+
+
+
+
+def attackRound(convoy, sub, combatRound):
+
+	# reveal counters [14.12]
+	revealed = sub.revealCounters()
+
+	for r in revealed:
+		if r and r.type == 'AC':
+			print('Found aircraft!')
+
+			if air_cover == 'light' and random.randint(0,9) > 4:
+				# replace with new draw
+				print('Light air cover, replacing AC with new draw')
+				
+				for t in r.column.targets:
+					print(t)
+
+				try:
+					idx = r.column.targets.index(r)
+					print('index:', idx)
+
+					if idx:
+						new_encounter = random.choice(r.column.draw_cup)
+						r.column.targets[idx] = new_encounter
+						new_encounter.visible = True
+
+						revealed.append(r.column.targets[idx])
+						print('Redrew encounter at position ' + str(idx) + ': ' + str(new_encounter))
+
+				except ValueError:
+					print('FIXME! AC column index could not be found')
+
+		if r and r.type == 'Event':
+			# ignore events?
+			print('Found event, ignoring it')
+
+		if r and r.diligent:
+			print('Found diligent escort')
+			if not sub.crashDive():
+				# roll for damage from diligent escort
+				diligentEscortTable(sub)
+
+
+	# set tdcs [14.14]
+	seedTDCCup()
+	combatResult = sub.attack(convoy, combatRound)
+	combatResult = convoy.counterattack(sub, combatRound > 1, combatResult)
+
+	return combatResult
+
+
+def counterAttack(convoy, sub, combatRound):
+	# 14.2
+	# totalASW = self.getTotalASWValue()
+
+	# get asw value in current and adjacent columns
+	immediateColumns = [sub.column] + sub.column.adjacent
+	asw = sum(c.getASWValue() for c in immediateColumns)
+
+	# find remote available asw values from aircraft or cvs
+	for c in convoy.columns:
+		if c not in immediateColumns:
+			for t in c.targets:
+				if t and t.visible and (t.type == 'AC' or t.type == 'CV'):
+					asw += t.asw
+
+	asw += red_boxes
+	asw += asw_value
+
+
+	defense = sub.defenseRating + sub.skipper
+	if sub.inexperienced:
+		defense -= 1
+
+	diff = asw - defense
+	print('Counterattack, red boxes:', red_boxes, 'global asw:', asw_value)
+	print('Total ASW', asw, 'defense', defense, 'diff', diff)
+
+	if diff < 0:
+		print('No counterattack, diff:', diff)
 	else:
-		# combine all attacks into one result
-		no = subs[0].name[2:subs[0].name.find('.')]
-	
-		cr = CombatResult(Wolfpack('WF' + no, subs))
-		cr.combine(attackResults)
-		return cr
+		# counterattack
+		roll = random.randint(0,9)
+		roll += sub.isDamaged()
+		if reattack:
+			roll += 1
+		if sub.spotted:
+			roll += 1
+
+
+		if roll > 12:
+			roll = 12
+
+		if asw > 8:
+			asw = 8
+		asw = int(asw)
+
+		print('Counterattack roll', roll, 'with asw', asw)
+		# counterattack table [14.2C]
+		# format: [asw] ([spotted], [damaged], [damagedRTB], [damagedRTB+], [sunk-], [sunk])
+		table =	(	([9], [10], [11], [], [], [12]),
+					([8], [9,10], [], [11], [], [12]),
+					([8], [9,10], [], [11], [], [12]),
+					([7], [8,9], [], [10], [], [11,12]),
+					([7], [8,9], [], [10], [], [11,12]),
+					([4,5], [6,7], [8], [9], [10], [11,12]),
+					([4,5], [6,7], [8], [9], [10], [11,12]),
+					([3,4], [5,6], [7], [8], [9],[10,11,12]),
+					([2,3], [4,5], [], [6,7], [8], [9,10,11,12])
+				)
+
+		row = table[asw]
+		
+		if roll < row[0][0]:
+			print('No effect.')
+		else:
+
+			if roll in row[0]:
+				sub.spotted = True
+				print('Sub', sub, 'spotted')
+
+			if roll in row[1]:
+				sub.takeDamage(False)
+			if roll in row[2]:
+				sub.takeDamage(True)
+
+			if roll in row[3]:
+				roll2 = random.randint(0, 9)
+				if roll2 >= 7:
+					sub.sink()
+				else:
+					sub.takeDamage(True)
+
+			if roll in row[4]:
+				roll2 = random.randint(0,9)
+				if roll2 >= 4:
+					sub.sink()
+				else:
+					sub.takeDamage(True)
+
+			if roll in row[5]:
+				sub.sink()
+
+
+			result.addSub(sub)
+
+	return result
+
+
 
 
 def withdrawSubs(subs, combatRound):
@@ -1325,66 +1215,72 @@ def createSubs(subcount, convoy, id):
 
 
 def attackConvoy():
-	subcount = 1
 
 	results = []
 
 	warperiod = 1
 	convoyType = 'C1'
+	skipper = 0
 
 	for i in range(0, 2000):
 
+		# refresh the cups periodically
 		if i % 50 == 0:
 			seedCups(warperiod)
 
 		# create convoy and subs
 		convoy = Convoy(convoyType)
 		convoy.straggle_level = base_straggle_level
-		subs = createSubs(subcount, convoy, i)
 
-		initialSubs = subs
-
+		# create the single(!) sub
+		sub = Sub('U-'+str(i), 5, 3, 3, skipper)
+		convoy.placeSub(sub)
 
 		# first round of attack
-		combatResultRound1 = attackRound(convoy, subs, 1)
-		subs = withdrawSubs(subs, 1)
+		targets = revealCounters(convoy, sub)
 
-		# [14.4] Re-attack rounds
-
-		# [29.3] Check for straggle increase
-		increaseStraggle(convoy, combatResultRound1.sunk+combatResultRound1.damaged, 1)
-
-		combatResultRound2 = attackRound(convoy, subs, 2)
-		combatResultRound1.combine([combatResultRound2])
-
-
-		# [14.4] Multiple Re-attack rounds
-		subs = withdrawSubs(subs, 2)
-
-		increaseStraggle(convoy, combatResultRound1.sunk+combatResultRound1.damaged, 2)
-
-		# convoy is large -- check for scatter
-		combatResultRound3 = attackRound(convoy, subs, 2)
-		combatResultRound1.combine([combatResultRound3])
-
-
-		for s in initialSubs:
-			if s.eligibleForPromotion():
-				combatResultRound1.subPromoted += 1
-				s.promoteSkipper()
-
-		results.append(combatResultRound1)
+		seedTDCCup()
+		targets = placeTDC(targets, sub, 1)
+		targets = selectTargets(targets, sub)
+		result = attackTargets(convoy, targets, sub)
 
 
 
-	#c2.printColumns()
-	#
 
-	for r in results:
-		r.printSummary() 
+		#combatResultRound1 = counterAttack(convoy, sub, 1, combatResultRound1)
+		#subs = withdrawSubs(subs, 1)
 
-	#summarizeResults(results)
-	writeResults('c1-wp1.csv', results)
+		if False:
+			# [14.4] Re-attack rounds
+
+			# [29.3] Check for straggle increase
+			increaseStraggle(convoy, combatResultRound1.sunk+combatResultRound1.damaged, 1)
+
+			combatResultRound2 = attackRound(convoy, subs, 2)
+			combatResultRound1.combine([combatResultRound2])
+
+
+			# [14.4] Multiple Re-attack rounds
+			subs = withdrawSubs(subs, 2)
+
+			increaseStraggle(convoy, combatResultRound1.sunk+combatResultRound1.damaged, 2)
+
+			# convoy is large -- check for scatter
+			combatResultRound3 = attackRound(convoy, subs, 2)
+			combatResultRound1.combine([combatResultRound3])
+
+
+		if sub.eligibleForPromotion():
+			combatResultRound1.subPromoted += 1
+			sub.promoteSkipper()
+
+		results.append(result)
+
+	#for r in results:
+	#	r.printSummary() 
+
+	summarizeResults(results)
+	#writeResults('c1-wp1.csv', results)
 	#createTable(results)
 
 	tmp = [r for r in results if r.sunk >= 3 and r.tons > 23]
