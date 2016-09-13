@@ -192,6 +192,8 @@ class Histogram:
 	 		newHisto[-1] = newHisto[-2]
 
 	 	self.values = newHisto
+	 	self.minKey = newRange[0]
+	 	self.maxKey = newRange[1]
 
 	def findD10DRM(self):
 
@@ -262,10 +264,46 @@ class Histogram:
 			print( '% 10s' % sl + ' %4d' % leftValue + ' %02d ' % roll + '%4d ' % rightValue + sr)
 
 
+	def compare(self, other):
+		# print both distributions in the form
+		# [original] [roll] [reconstructed]
+		# *** [0000] [roll] [0000] ***
+		for roll in range(min(other.minKey, self.minKey), max(other.maxKey, self.maxKey)):
+			pass
 
 
+			leftValue = self.findValue(roll)
+			if leftValue:
+				leftValue = leftValue[1]
+			else:
+				leftValue = 0
+
+			rightValue = other.findValue(roll)
+			if rightValue:
+				rightValue = rightValue[1]
+			else:
+				rightValue = 0
 
 
+			sl = int(round(float(leftValue) / self.peak[1] * 10))
+			if sl > 10:
+				sl = '+' + 9*'*'
+			else:
+				sl = sl * '*'
+
+			sr = int(round(float(rightValue) / other.peak[1] * 10))
+			if sr > 10:
+				sr = 9*'*' + '+'
+			else:
+				sr = sr*'*'
+
+			
+
+			print( '% 10s' % sl + ' %4d' % leftValue + ' %02d ' % roll + '%4d ' % rightValue + sr)
+
+
+	def findLinearRange(self):
+		pass 
 
 
 
@@ -273,64 +311,24 @@ class Histogram:
 if __name__ == '__main__':
 	filename ='c1-wp1.csv'
 
-	print(dir(sys))
-	print(sys.version)
-
 	if len(sys.argv) > 1:
 		filename =sys.argv[1]
 
-
-	if False:
-		data = loadFile(filename)
-
-		for r in data:
-			#r.printSummary()
-			pass
-
-		count = len(data)
-		print('Subs')
-		print('-----------------------')
-
-		damaged = sum(r.subsDamaged for r in data if r.subsDamaged > 0)
-		print('Damaged : %4d'  % damaged + '/' + str(count))
-
-		sunk = sum(r.subsSunk for r in data if r.subsSunk > 0)
-		print('Sunk    : %4d' % sunk + '/' + str(count))
-
-		rtb = sum(r.subsRTB for r in data if r.subsRTB > 0)
-		print('RTB     : %4d' % rtb + '/' + str(count))
-
-		spotted = sum(r.subsSpotted for r in data if r.subsSpotted > 0)
-		print('Spotted : %4d' % spotted + '/' + str(count))
-
-		promoted = sum(r.subsPromoted for r in data if r.subsPromoted > 0)
-		print('Promoted: %4d' %promoted + '/' + str(count))
-
-
-	if False:
-
-		data1 = loadFile('c1-wp1-1sub.csv')
-		data4 = loadFile('c1-wp1-4sub.csv')
-
-		tons1 = [r.tgtTons for r in data1]
-		tons1.sort
-
-		tons4 = [r.tgtTons for r in data4]
-		tons4.sort
-
-
-		histo1 = Histogram('Tonnage 1', tons1)
-		histo1.printData()
-
-		histo4 = Histogram('Tonnage 4', tons4)
-		histo4.printData()
-
-	data1 = loadFile('c1-wp1-1sub.csv')
+	data1 = loadFile('c1-322-wp1.csv')
 	tons1 = [r.tgtTons for r in data1]
 	tons1.sort
-	histo1 = Histogram('Tonnage 1', tons1)
-	histo1.printData()
-	histo1.resample([0,19])
-	histo1.printData()
 
-	histo1.findD10DRM()
+	
+	data2 = loadFile('c1-432-wp1.csv')
+	tons2 = [r.tgtTons for r in data2]
+	tons2.sort()
+
+	histo1 = Histogram('Tonnage 1', tons1)
+	histo1.resample([0,18])
+	
+	histo2 = Histogram('Tonnage 2', tons2)
+	histo2.resample([0,18])
+	
+	histo1.compare(histo2)
+
+	histo1.findLinearRange()

@@ -1264,7 +1264,7 @@ def attackConvoy():
 		convoy.straggle_level = globals.base_straggle_level
 
 		# create the single(!) sub
-		sub = Sub('U-'+str(i), 3, 3, 3, skipper)
+		sub = Sub('U-'+str(i), 4, 3, 2, skipper)
 		convoy.placeSub(sub)
 
 		# first round of attack
@@ -1329,7 +1329,7 @@ def attackConvoy():
 	#	r.printSummary() 
 
 	summarizeResults(results)
-	writeResults('c1-wp1.csv', results)
+	writeResults('c1-432-wp1.csv', results)
 	#createTable(results)
 
 
