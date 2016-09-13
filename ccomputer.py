@@ -1264,7 +1264,7 @@ def attackConvoy():
 		convoy.straggle_level = globals.base_straggle_level
 
 		# create the single(!) sub
-		sub = Sub('U-'+str(i), 3, 3, 2, skipper)
+		sub = Sub('U-'+str(i), 5, 3, 3, skipper)
 		convoy.placeSub(sub)
 
 		# first round of attack
@@ -1329,8 +1329,12 @@ def attackConvoy():
 	#	r.printSummary() 
 
 	summarizeResults(results)
-	writeResults('c1-322+2-wp1.csv', results)
-	#createTable(results)
+
+	filename = convoyType.lower() + '-' + str(sub.attackRating) + str(sub.defenseRating) + str(sub.tacRating) +  '+' + str(sub.skipper)
+	filename += '-wp' + str(warperiod) + '.csv'
+
+	writeResults(filename, results)
+
 
 
 	#r2 = [r for r in results if r.subPromoted > 0]

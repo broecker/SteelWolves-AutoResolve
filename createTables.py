@@ -266,8 +266,10 @@ class Histogram:
 
 
 	def compare(self, other):
+		print('Comparing histograms ' + self.name + ' and ' + other.name)
+
 		# print both distributions in the form
-		# [original] [roll] [reconstructed]
+		#     [self] [roll] [other]
 		# *** [0000] [roll] [0000] ***
 		for roll in range(min(other.minKey, self.minKey), max(other.maxKey, self.maxKey)):
 			pass
@@ -359,25 +361,42 @@ if __name__ == '__main__':
 	if len(sys.argv) > 1:
 		filename =sys.argv[1]
 
-	data1 = loadFile('c1-322-wp1.csv')
+	data1 = loadFile('c1-332+0-wp1.csv')
 	tons1 = [r.tgtTons for r in data1]
 	tons1.sort
-
 	
-	data2 = loadFile('c1-432-wp1.csv')
+	data2 = loadFile('c1-332+1-wp1.csv')
 	tons2 = [r.tgtTons for r in data2]
 	tons2.sort()
 
-	data3 = loadFile('c1-533-wp1.csv')
+	data3 = loadFile('c1-332+2-wp1.csv')
 	tons3 = [r.tgtTons for r in data3]
 	tons3.sort()
 
-	histo1 = Histogram('Tonnage 322', tons1)
-	histo2 = Histogram('Tonnage 432', tons2)
-	histo3 = Histogram('Tonnage 533', tons3)
+	histo1 = Histogram('Tonnage 332+0', tons1)
+	histo2 = Histogram('Tonnage 332+1', tons2)
+	histo3 = Histogram('Tonnage 332+2', tons3)
 
-	histo1.compare(histo3)
+	histo1.compare(histo2)
 
-	histo1.findLinearRange(20)
-	histo2.findLinearRange(20)
-	histo3.findLinearRange(20)
+	histo1.findLinearRange(10)
+	histo2.findLinearRange(10)
+	histo3.findLinearRange(10)
+
+
+	damaged1 = [r.subsDamaged for r in data1]
+	damaged1.sort()
+
+	damaged2 = [r.subsDamaged for r in data2]
+	damaged2.sort()
+
+	histo1d = Histogram('Damaged subs 332+0', damaged1)
+	histo1d.findLinearRange(10)
+
+	histo2d = Histogram('Damaged subs 332+1', damaged2)
+	histo1d.compare(histo2d)
+
+	lost1 = [r.subsSunk for r in data1]
+	lost1.sort()
+
+
