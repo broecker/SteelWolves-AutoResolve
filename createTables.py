@@ -23,6 +23,7 @@
 
 import sys
 import dieroller
+import math
 
 class Result:
 	def __init__(self, data):
@@ -302,8 +303,52 @@ class Histogram:
 			print( '% 10s' % sl + ' %4d' % leftValue + ' %02d ' % roll + '%4d ' % rightValue + sr)
 
 
-	def findLinearRange(self):
-		pass 
+	def findLinearRange(self, count=10):
+		totalSum = sum(t[1] for t in self.values)
+		divider = int(totalSum / count)
+		
+		# reverse tuples
+		valueRange = []
+		for v in self.values:
+			valueRange.append((v[1], v[0]))
+		#valueRange.sort(key=lambda x:x[0], reverse=True)
+		
+		table = []
+
+		# split values that are larger than the divider and combine values that
+		# are smaller
+		i = 0
+		currentSum = valueRange[0][0]
+		try:
+			while i < len(valueRange):
+				
+				if currentSum > divider:
+					table.append(i)
+					currentSum -= divider
+				else:
+					i += 1
+					currentSum += valueRange[i][0] 
+		except IndexError:
+			pass
+
+		print(self.name + ' linear range:')
+		#print(table)
+
+		# calculate average values for the table 
+		# TODO: should be weighted? 
+		for i in range(len(table)-1, 1, -1):
+
+			if table[i] == 0:
+				break;
+
+			val = table[i] + table[i-1]
+			val = int(math.ceil(val / 2))
+			table[i] = val
+
+
+		print(table)
+
+
 
 
 
@@ -323,12 +368,16 @@ if __name__ == '__main__':
 	tons2 = [r.tgtTons for r in data2]
 	tons2.sort()
 
-	histo1 = Histogram('Tonnage 1', tons1)
-	histo1.resample([0,18])
-	
-	histo2 = Histogram('Tonnage 2', tons2)
-	histo2.resample([0,18])
-	
-	histo1.compare(histo2)
+	data3 = loadFile('c1-533-wp1.csv')
+	tons3 = [r.tgtTons for r in data3]
+	tons3.sort()
+
+	histo1 = Histogram('Tonnage 322', tons1)
+	histo2 = Histogram('Tonnage 432', tons2)
+	histo3 = Histogram('Tonnage 533', tons3)
+
+	histo1.compare(histo3)
 
 	histo1.findLinearRange()
+	histo2.findLinearRange()
+	histo3.findLinearRange()
