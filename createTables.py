@@ -378,6 +378,6 @@ if __name__ == '__main__':
 
 	histo1.compare(histo3)
 
-	histo1.findLinearRange()
-	histo2.findLinearRange()
-	histo3.findLinearRange()
+	histo1.findLinearRange(20)
+	histo2.findLinearRange(20)
+	histo3.findLinearRange(20)

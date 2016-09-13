@@ -1251,7 +1251,7 @@ def attackConvoy():
 
 	warperiod = 1
 	convoyType = 'C1'
-	skipper = 0
+	skipper = 2
 
 	for i in range(0, 2000):
 
@@ -1264,7 +1264,7 @@ def attackConvoy():
 		convoy.straggle_level = globals.base_straggle_level
 
 		# create the single(!) sub
-		sub = Sub('U-'+str(i), 4, 3, 2, skipper)
+		sub = Sub('U-'+str(i), 3, 3, 2, skipper)
 		convoy.placeSub(sub)
 
 		# first round of attack
@@ -1305,7 +1305,7 @@ def attackConvoy():
 			# possible 3rd round of combat
 			if not (sub.damage > 0 or sub.rtb) and sub.skipper > 0:
 
-				increaseStraggle(convoy, result2.sunk+result2.damage>0, 2)
+				increaseStraggle(convoy, result2.sunk+result2.damaged>0, 2)
 
 				targets = revealCounters(convoy, sub)
 				seedTDCCup()
@@ -1329,7 +1329,7 @@ def attackConvoy():
 	#	r.printSummary() 
 
 	summarizeResults(results)
-	writeResults('c1-432-wp1.csv', results)
+	writeResults('c1-322+2-wp1.csv', results)
 	#createTable(results)
 
 
