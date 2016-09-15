@@ -23,6 +23,7 @@
 
 import sys
 import dieroller
+import math
 
 class Result:
 	def __init__(self, data):
@@ -192,6 +193,8 @@ class Histogram:
 	 		newHisto[-1] = newHisto[-2]
 
 	 	self.values = newHisto
+	 	self.minKey = newRange[0]
+	 	self.maxKey = newRange[1]
 
 	def getCompressed(self):
 		maxLength = 10
@@ -289,8 +292,87 @@ class Histogram:
 			print( '% 10s' % sl + ' %4d' % leftValue + ' %02d ' % roll + '%4d ' % rightValue + sr)
 
 
+	def compare(self, other):
+		print('Comparing histograms ' + self.name + ' and ' + other.name)
+
+		# print both distributions in the form
+		#     [self] [roll] [other]
+		# *** [0000] [roll] [0000] ***
+		for roll in range(min(other.minKey, self.minKey), max(other.maxKey, self.maxKey)):
+			pass
 
 
+			leftValue = self.findValue(roll)
+			if leftValue:
+				leftValue = leftValue[1]
+			else:
+				leftValue = 0
+
+			rightValue = other.findValue(roll)
+			if rightValue:
+				rightValue = rightValue[1]
+			else:
+				rightValue = 0
+
+
+			sl = int(round(float(leftValue) / self.peak[1] * 10))
+			if sl > 10:
+				sl = '+' + 9*'*'
+			else:
+				sl = sl * '*'
+
+			sr = int(round(float(rightValue) / other.peak[1] * 10))
+			if sr > 10:
+				sr = 9*'*' + '+'
+			else:
+				sr = sr*'*'
+
+
+
+	def findLinearRange(self, count=10):
+		totalSum = sum(t[1] for t in self.values)
+		divider = int(totalSum / count)
+		
+		# reverse tuples
+		valueRange = []
+		for v in self.values:
+			valueRange.append((v[1], v[0]))
+		#valueRange.sort(key=lambda x:x[0], reverse=True)
+		
+		table = []
+
+		# split values that are larger than the divider and combine values that
+		# are smaller
+		i = 0
+		currentSum = valueRange[0][0]
+		try:
+			while i < len(valueRange):
+				
+				if currentSum > divider:
+					table.append(i)
+					currentSum -= divider
+				else:
+					i += 1
+					currentSum += valueRange[i][0] 
+		except IndexError:
+			pass
+
+		print(self.name + ' linear range:')
+		#print(table)
+
+		# calculate average values for the table 
+		# TODO: should be weighted? 
+		for i in range(len(table)-1, 1, -1):
+
+			if table[i] == 0:
+				break;
+
+			val = table[i] + table[i-1]
+			val = int(math.ceil(val / 2))
+			table[i] = val
+
+
+		print(table)
 
 
 
@@ -303,58 +385,42 @@ if __name__ == '__main__':
 	if len(sys.argv) > 1:
 		filename =sys.argv[1]
 
-
-	if False:
-		data = loadFile(filename)
-
-		for r in data:
-			#r.printSummary()
-			pass
-
-		count = len(data)
-		print('Subs')
-		print('-----------------------')
-
-		damaged = sum(r.subsDamaged for r in data if r.subsDamaged > 0)
-		print('Damaged : %4d'  % damaged + '/' + str(count))
-
-		sunk = sum(r.subsSunk for r in data if r.subsSunk > 0)
-		print('Sunk    : %4d' % sunk + '/' + str(count))
-
-		rtb = sum(r.subsRTB for r in data if r.subsRTB > 0)
-		print('RTB     : %4d' % rtb + '/' + str(count))
-
-		spotted = sum(r.subsSpotted for r in data if r.subsSpotted > 0)
-		print('Spotted : %4d' % spotted + '/' + str(count))
-
-		promoted = sum(r.subsPromoted for r in data if r.subsPromoted > 0)
-		print('Promoted: %4d' %promoted + '/' + str(count))
-
-
-	if False:
-
-		data1 = loadFile('c1-wp1-1sub.csv')
-		data4 = loadFile('c1-wp1-4sub.csv')
-
-		tons1 = [r.tgtTons for r in data1]
-		tons1.sort
-
-		tons4 = [r.tgtTons for r in data4]
-		tons4.sort
-
-
-		histo1 = Histogram('Tonnage 1', tons1)
-		histo1.printData()
-
-		histo4 = Histogram('Tonnage 4', tons4)
-		histo4.printData()
-
-	data1 = loadFile('c1-wp1-1sub.csv')
+	data1 = loadFile('c1-332+0-wp1.csv')
 	tons1 = [r.tgtTons for r in data1]
 	tons1.sort
-	histo1 = Histogram('Tonnage 1', tons1)
-	histo1.printData()
-	histo1.resample([0,19])
-	histo1.printData()
+	
+	data2 = loadFile('c1-332+1-wp1.csv')
+	tons2 = [r.tgtTons for r in data2]
+	tons2.sort()
 
-	histo1.findD10DRM()
+	data3 = loadFile('c1-332+2-wp1.csv')
+	tons3 = [r.tgtTons for r in data3]
+	tons3.sort()
+
+	histo1 = Histogram('Tonnage 332+0', tons1)
+	histo2 = Histogram('Tonnage 332+1', tons2)
+	histo3 = Histogram('Tonnage 332+2', tons3)
+
+	histo1.compare(histo2)
+
+	histo1.findLinearRange(10)
+	histo2.findLinearRange(10)
+	histo3.findLinearRange(10)
+
+
+	damaged1 = [r.subsDamaged for r in data1]
+	damaged1.sort()
+
+	damaged2 = [r.subsDamaged for r in data2]
+	damaged2.sort()
+
+	histo1d = Histogram('Damaged subs 332+0', damaged1)
+	histo1d.findLinearRange(10)
+
+	histo2d = Histogram('Damaged subs 332+1', damaged2)
+	histo1d.compare(histo2d)
+
+	lost1 = [r.subsSunk for r in data1]
+	lost1.sort()
+
+
