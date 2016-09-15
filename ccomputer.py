@@ -709,21 +709,32 @@ def printCup(cup):
 	for c in cup:
 		print(c)
 
-def seedTDCCup():
-	cups['tdc'] = [4, -4]
+def seedTDCCup(warperiod):
+	
+	dist = []
+	if warperiod == 1:
+		dist = [1,3,7,8,8,7,4,1,1]
+	if warperiod == 2:
+		dist = [1,3,7,8,9,8,2,1,1]
+	if warperiod == 3:
+		dist = [1,2,7,6,9,8,6,2,1]
+	if warperiod == 4:
+		dist = [1,3,7,8,10,8,4,2,1]
+	if warperiod == 5:
+		dist = [1,2,7,8,9,8,7,3,1]
 
-	for i in range(0, 3):
-		cups['tdc'].append(3)
-		cups['tdc'].append(-3)
+	def repeat(value, count):
+		return [value]*count
 
-	for i in range(0,7):
-		cups['tdc'].append(-2)
-		cups['tdc'].append(2)
-	for i in range(0,8):
-		cups['tdc'].append(-1)
-		cups['tdc'].append(1)
-	for i in range(0, 10):
-		cups['tdc'].append(0)
+	cups['tdc'] = []
+
+	mod = -4
+	for i in dist:
+		cups['tdc'] += repeat(mod, i)
+		mod += 1
+
+	#print('Reshuffled TDC cup for WP' + str(warperiod) + ': ', cups['tdc'])
+
 
 	random.shuffle(cups['tdc'])
 
@@ -1258,7 +1269,6 @@ def attackConvoy():
 	sub_def = 3
 	sub_tac = 2
 
-
 	for i in range(0, 2000):
 
 		# refresh the cups periodically
@@ -1276,7 +1286,7 @@ def attackConvoy():
 		# first round of attack
 		targets = revealCounters(convoy, sub)
 
-		seedTDCCup()
+		seedTDCCup(warperiod)
 		targets = placeTDC(targets, sub, 1)
 		targets = selectTargets(targets, sub)
 		result = attackTargets(convoy, targets, sub)
@@ -1299,7 +1309,7 @@ def attackConvoy():
 			# second round of attack
 			targets = revealCounters(convoy, sub)
 
-			seedTDCCup()
+			seedTDCCup(warperiod)
 			targets = placeTDC(targets, sub, 2)
 			targets = selectTargets(targets, sub)
 			result2 = attackTargets(convoy, targets, sub)
@@ -1314,7 +1324,7 @@ def attackConvoy():
 				increaseStraggle(convoy, result2.sunk+result2.damaged>0, 2)
 
 				targets = revealCounters(convoy, sub)
-				seedTDCCup()
+				seedTDCCup(warperiod)
 
 				targets = placeTDC(targets, sub, 2)
 				targets = selectTargets(targets, sub)
@@ -1353,7 +1363,4 @@ def attackConvoy():
 
 if __name__ == '__main__':
 	random.seed()
-
-	seedTDCCup()
-
 	attackConvoy()
