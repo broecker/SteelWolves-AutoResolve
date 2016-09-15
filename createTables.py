@@ -390,6 +390,27 @@ def calculateScore(t0, t1):
 	return score
 
 
+def shiftTable(table, drm, keepSize=True):
+	'''Shifts a table left or right by drm columns'''
+	tcp = table[:]
+
+	if drm > 0:
+		# drm > 0 -> shift right
+		for k in range(0, drm):
+			tcp.insert(0, 0)
+			if keepSize:
+				tcp.pop()
+
+	if drm < 0:
+		for k in range(0, -drm):
+			# drm < 0 -> shift left
+			tcp.append(tcp[-1])
+			if keepSize:
+				tcp.pop(0)
+
+	return tcp
+
+
 def alignTables(table1, table2):
 	print('Table 1 (reference):', table1)
 	print('Table 2 (target)   :', table2)
@@ -397,19 +418,7 @@ def alignTables(table1, table2):
 	results = []
 
 	for drm in range(-8, 8):
-		tcp = table2[:]
-
-		if drm > 0:
-			# drm > 0 -> shift right
-			for k in range(0, drm):
-				tcp.insert(0, 0)
-				tcp.pop()
-
-		if drm < 0:
-			for k in range(0, -drm):
-				# drm < 0 -> shift left
-				tcp.append(tcp[-1])
-				tcp.pop(0)
+		tcp = shiftTable(table2, drm)
 
 		#print('DRM ' + str(drm))
 		#print('Table 1 (reference):', table1)
@@ -423,6 +432,21 @@ def alignTables(table1, table2):
 	# pick the best == lowest score
 	results.sort(key=lambda x: x[1])
 	print('Tables aligned with DRM: ' + str(results[0][0]) )
+
+	return results[0][0]
+
+
+def combineTables(reference, table2, drm):
+	t2 = shiftTable(table2, drm)
+
+	result = []
+	for p in zip(reference, t2):
+		r = (p[0] + p[1]) / 2
+		r = math.ceil(r)
+		result.append(int(r))
+
+	print(result)
+	return result
 
 
 
@@ -465,7 +489,7 @@ if __name__ == '__main__':
 	histo2 = Histogram('Tonnage 332+1', tons2)
 	histo3 = Histogram('Tonnage 332+2', tons3)
 
-	histo1.compare(histo2)
+	#histo1.compare(histo2)
 
 	t0 = histo1.findLinearRange(10)
 	t1 = histo2.findLinearRange(10)
@@ -528,5 +552,8 @@ if __name__ == '__main__':
 	getPercentageRolls(rtb3)
 
 
-	alignTables(t0, t1)
-	alignTables(t0, t2)
+	d0 = alignTables(t2, t0)
+	t2 = combineTables(t2, t0, d0)
+
+	d1 = alignTables(t2, t1)
+	t2 = combineTables(t2, t1, d1)

@@ -1251,7 +1251,7 @@ def attackConvoy():
 
 	warperiod = 1
 	convoyType = 'C1'
-	skipper = 2
+	skipper = 1
 
 	# sub rating here
 	sub_atk = 3
