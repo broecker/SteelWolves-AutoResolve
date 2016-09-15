@@ -426,6 +426,21 @@ def alignTables(table1, table2):
 
 
 
+def getPercentageRolls(series):
+
+	# calculate probability
+	p = float(sum(series)) / len(series) * 100
+
+	if p < 10:
+		if p < 1:
+			print('Chance too small!')
+		else:
+			d = int(p)
+			print('1 on 1D10 + [0-' + str(d) + '] on 1D10')
+	else:
+		d = int(p / 10)
+		print('[0-' + str(d) + '] on 1D10')
+
 
 
 if __name__ == '__main__':
@@ -463,15 +478,54 @@ if __name__ == '__main__':
 	damaged2 = [r.subsDamaged for r in data2]
 	damaged2.sort()
 
-	histo1d = Histogram('Damaged subs 332+0', damaged1)
-	histo1d.findLinearRange(10)
+	damaged3 = [r.subsDamaged for r in data3]
+	damaged3.sort()
 
-	histo2d = Histogram('Damaged subs 332+1', damaged2)
-	histo1d.compare(histo2d)
+	print('Damage rolls for submarine:')
+	getPercentageRolls(damaged1)
+	getPercentageRolls(damaged2)
+	getPercentageRolls(damaged3)
 
 	lost1 = [r.subsSunk for r in data1]
 	lost1.sort()
 
+	lost2 = [r.subsSunk for r in data2]
+	lost2.sort()
+
+	lost3 = [r.subsSunk for r in data3]
+	lost3.sort()
+	print('Sunk rolls for submarine:')
+	getPercentageRolls(lost1)
+	getPercentageRolls(lost2)
+	getPercentageRolls(lost3)
+
+
+	spotted1 = [r.subsSpotted for r in data1]
+	spotted1.sort()
+
+	spotted2 = [r.subsSpotted for r in data2]
+	spotted2.sort()
+
+	spotted3 = [r.subsSpotted for r in data3]
+	spotted3.sort()
+	print('Spotted rolls for submarine:')
+	getPercentageRolls(spotted1)
+	getPercentageRolls(spotted2)
+	getPercentageRolls(spotted3)
+
+
+	rtb1 = [r.subsRTB for r in data1]
+	rtb1.sort()
+
+	rtb2 = [r.subsRTB for r in data2]
+	rtb2.sort()
+
+	rtb3 = [r.subsRTB for r in data3]
+	rtb3.sort()
+	print('RTB rolls for submarine:')
+	getPercentageRolls(rtb1)
+	getPercentageRolls(rtb2)
+	getPercentageRolls(rtb3)
 
 
 	alignTables(t0, t1)

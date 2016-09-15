@@ -30,7 +30,7 @@ cups = {}
 # global values
 class GlobalValues:
 	def __init__(self):
-		self.torp_value = -1
+		self.torp_value = -2
 		self.bdienst = 0
 		self.asw_value = 0
 		self.air_cover = 'light'
@@ -1253,6 +1253,12 @@ def attackConvoy():
 	convoyType = 'C1'
 	skipper = 2
 
+	# sub rating here
+	sub_atk = 3
+	sub_def = 3
+	sub_tac = 2
+
+
 	for i in range(0, 2000):
 
 		# refresh the cups periodically
@@ -1264,7 +1270,7 @@ def attackConvoy():
 		convoy.straggle_level = globals.base_straggle_level
 
 		# create the single(!) sub
-		sub = Sub('U-'+str(i), 3, 3, 2, skipper)
+		sub = Sub('U-'+str(i), sub_atk, sub_def, sub_tac, skipper)
 		convoy.placeSub(sub)
 
 		# first round of attack
