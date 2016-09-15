@@ -203,8 +203,6 @@ class Histogram:
 
 			result.append((v[0], u))
 
-
-		print(result)
 		return result
 
 
@@ -212,32 +210,43 @@ class Histogram:
 
 		scores = []
 
-		for drm in range(-20, 20):
+		ownCompressed = self.getCompressed()
+
+		for drm in range(-10, 10):
 			result = dieroller.dieRoller(2, 10, drm, 2000, False)
 
-			# subtract result from current and build a score
-			score = 0
-
-			peak = 0
+			# compress the result
+			compressedResult = []
+			peakR = 0
 			for r in result:
-				v = self.findValue(r[0])
-				if v:
-					score += abs(v[0] - r[1])
-				else:
-					score += r[1]
+				peakR = max(peakR, r[1])
 
-				if r[1] > peak:
-					peak = r[0]
+			for r in result:
+				u = int(round(float(r[1]) / peakR * 10))
+				u = min(u, 10)
+				compressedResult.append((r[0], u))
+			
+			#print(compressedResult)
 
-			scores.append((drm, score, peak))
+			# now compare the compressed results
+
+			# first, make sure that the results start at the same offset
+			score = 0
+			for i, j in zip(compressedResult, ownCompressed): 
+				val = abs(i[1] -j[1])
+				score += val
 
 
-		bestResult = dieroller.dieRoller(2, 6, 0, 2000, False, False)
+			scores.append((drm, score))
 
 
-		print('compressing ... ')
-		self.getCompressed()
+		scores.sort(key=lambda x:x[1])
+		print(scores)
 
+
+
+
+		bestResult = dieroller.dieRoller(2, 10, -4, 2000, False, False)
 
 		def findValueInResult(val):
 			for i in bestResult:
@@ -253,7 +262,6 @@ class Histogram:
 		# [original] [roll] [reconstructed]
 		# *** [0000] [roll] [0000] ***
 		for roll in range(min(bestResult[0][0], self.minKey), max(bestResult[-1][0], self.maxKey)):
-			pass
 
 
 			leftValue = self.findValue(roll)
@@ -291,9 +299,6 @@ class Histogram:
 
 if __name__ == '__main__':
 	filename ='c1-wp1.csv'
-
-	print(dir(sys))
-	print(sys.version)
 
 	if len(sys.argv) > 1:
 		filename =sys.argv[1]
