@@ -299,7 +299,6 @@ class Histogram:
 		#     [self] [roll] [other]
 		# *** [0000] [roll] [0000] ***
 		for roll in range(min(other.minKey, self.minKey), max(other.maxKey, self.maxKey)):
-			pass
 
 
 			leftValue = self.findValue(roll)
@@ -326,6 +325,11 @@ class Histogram:
 				sr = 9*'*' + '+'
 			else:
 				sr = sr*'*'
+
+			print( '% 10s' % sl + ' %4d' % leftValue + ' %02d ' % roll + '%4d ' % rightValue + sr)
+
+
+
 
 
 
@@ -373,7 +377,52 @@ class Histogram:
 
 
 		print(table)
+		return table
 
+
+
+def calculateScore(t0, t1):
+	score = 0
+
+	for p in zip(t0,t1):
+		score += abs(p[0] - p[1])
+
+	return score
+
+
+def alignTables(table1, table2):
+	print('Table 1 (reference):', table1)
+	print('Table 2 (target)   :', table2)
+
+	results = []
+
+	for drm in range(-8, 8):
+		tcp = table2[:]
+
+		if drm > 0:
+			# drm > 0 -> shift right
+			for k in range(0, drm):
+				tcp.insert(0, 0)
+				tcp.pop()
+
+		if drm < 0:
+			for k in range(0, -drm):
+				# drm < 0 -> shift left
+				tcp.append(tcp[-1])
+				tcp.pop(0)
+
+		#print('DRM ' + str(drm))
+		#print('Table 1 (reference):', table1)
+		#print('Table 2 (target)   :', tcp)
+
+		score = calculateScore(table1, tcp)
+		#print('DRM ' + str(drm) + ', score: ' + str(score) )
+		
+		results.append((drm, score))		
+
+	# pick the best == lowest score
+	results.sort(key=lambda x: x[1])
+	print('Tables aligned with DRM: ' + str(results[0][0]) )
 
 
 
@@ -403,9 +452,9 @@ if __name__ == '__main__':
 
 	histo1.compare(histo2)
 
-	histo1.findLinearRange(10)
-	histo2.findLinearRange(10)
-	histo3.findLinearRange(10)
+	t0 = histo1.findLinearRange(10)
+	t1 = histo2.findLinearRange(10)
+	t2 = histo3.findLinearRange(10)
 
 
 	damaged1 = [r.subsDamaged for r in data1]
@@ -424,3 +473,6 @@ if __name__ == '__main__':
 	lost1.sort()
 
 
+
+	alignTables(t0, t1)
+	alignTables(t0, t2)
