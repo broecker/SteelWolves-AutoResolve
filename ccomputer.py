@@ -30,7 +30,7 @@ cups = {}
 # global values
 class GlobalValues:
 	def __init__(self):
-		self.torp_value = -2
+		self.torp_value = -1
 		self.bdienst = 0
 		self.asw_value = 0
 		self.air_cover = 'light'

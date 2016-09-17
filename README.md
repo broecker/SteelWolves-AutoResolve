@@ -82,6 +82,14 @@ Work-in-progress -- currently based on 'gut feel' and fudging
 
 
 
+## Results
+
+The tables are split between war periods and then grouped per submarine 
+based on similar values (eg VIIB and VIIC together).
+
+
+
+
 ## Future Work
 The current version of the simulator consist of multipple python scripts that 
 grew beyond the comfort of a simple, single-file script. The next version 
