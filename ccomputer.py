@@ -53,7 +53,9 @@ class Encounter:
 		self.diligent = False
 		self.validTarget = True
 		self.damaged = False
+		self.sunk = False
 		self.column = None
+		self.fast = False
 
 	def __repr__(self):
 		if self.type == 'M':
@@ -126,6 +128,7 @@ class Encounter:
 				result = 'sunk'
 			
 			self.damaged = True
+			self.sunk = False
 
 		if result == 'sunk':
 			#remove from column etc 
@@ -135,10 +138,16 @@ class Encounter:
 				self.column.targets[i] = None
 				self.column = None
 
+			self.damaged = False
+			self.sunk = True
+
 
 		print('Rolling damage for', self, ':', roll, '(', globals.torp_value, 'torp value) ->', result)
 		return result
 
+
+	def isValidTarget(self):
+		return not (self.type == 'Event' or self.type == 'Draw Liner')
 
 class Column:
 	''' A column in the convoy'''
@@ -302,9 +311,6 @@ class Convoy:
 			op.setAdjacent([p])
 
 			self.columns = [os, s, cs, cp, p, op]
-
-		if type == 'Loner':
-			print('Loner not yet implemented')
 
 		if type == 'TF':
 			print('Task Force not yet implemented')
@@ -471,6 +477,9 @@ class Sub:
 		self.tonsSunk += target.tons
 		self.targetsSunk += 1
 
+	def canReAttack(self):
+		return self.damage == 0 and self.rtb == False
+
 
 	def promoteSkipper(self):
 		self.skipper = min(self.skipper + 1, 2)
@@ -571,8 +580,6 @@ def getES(nation, diligent, wp):
 
 
 	e = random.choice(pool)
-
-	print('Drawing escort: ', e)
 
 	es = Encounter(e[0], nation, e[1], e[2], e[3])
 	es.diligent = diligent
@@ -710,7 +717,9 @@ def seedCup(config, wp):
 	if config[16]:
 		cup.append(getWarship('CA', 'Ramilles', 10, 8, 1))
 	if config[17]:
-		cup.append(getWarship('CL', 'D 6t', 6, 4, 1))
+		cl = getWarship('CL', 'D 6t', 6, 4, 1)
+		cl.fast = True
+		cup.append(cl)
 
 	if config[18]:
 		cup.append(getAM('british'))
@@ -1054,6 +1063,50 @@ def selectTargets(revealed, sub):
 	return targets
 
 
+def attackSingleTarget(target, sub, aswValue):
+	result = CombatResult(sub)
+
+	# 14.16 attack
+	attackValue = sub.attackRating + sub.skipper + globals.torp_value
+
+	damageMod = 0
+	if target.damaged:
+		damageMod = -1
+
+	print('Combat vs', target)
+	print('Attack :', attackValue, '[', sub.attackRating, 'attack',sub.skipper,'skipper',globals.torp_value,' torp rating')
+	print('Defense:', aswValue, '[', aswValue, 'ASW', target.tdc,'TDC', damageMod, ' damaged]')
+	aswValue = aswValue + target.tdc + damageMod
+
+	diff = attackValue - aswValue
+	roll = random.randint(0, 9)
+	if sub.inexperienced:
+		roll += 1
+
+	if roll <= diff:
+		print('Diff:',diff,'Roll:', roll, 'Target hit')
+
+		# consult attack results table here
+		d = target.rollForDamage(sub)
+
+		if d == 'sunk':
+			result.sunk += 1
+			result.tons += target.tons
+
+			sub.claimTarget(target)
+
+		if d == 'damage':
+			result.damaged += 1
+
+	else:
+		print('Diff:',diff,'Roll:', roll, 'Target missed')
+
+	target.tdc = None
+	return result
+
+
+
+
 def attackTargets(convoy, targets, sub):
 	result = CombatResult(sub)
 
@@ -1162,7 +1215,8 @@ def attackRound(convoy, sub, combatRound):
 	return combatResult
 
 
-def counterAttack(convoy, sub, combatRound):
+
+def convoyCounterAttack(convoy, sub, combatRound):
 	# 14.2
 	# totalASW = self.getTotalASWValue()
 
@@ -1176,6 +1230,13 @@ def counterAttack(convoy, sub, combatRound):
 			for t in c.targets:
 				if t and t.visible and (t.type == 'AC' or t.type == 'CV'):
 					asw += t.asw
+
+	return counterAttack(asw, sub, combatRound)
+
+
+def counterAttack(totalASW, sub, combatRound):
+
+	asw = totalASW
 
 	asw += globals.red_dots
 	asw += globals.asw_value
@@ -1310,6 +1371,111 @@ def createSubs(subcount, convoy, id):
 
 
 
+def attackLoners():
+	results = []
+	warperiod = 1
+	skipper = 0
+
+	sub_atk = 3
+	sub_def = 3
+	sub_tac =2
+
+	seedTDCCup(warperiod)
+
+	for i in range(0, 2000):
+		# refresh the cups periodically
+		if i % 50 == 0:
+			seedCups(warperiod)
+
+
+		sub = Sub('U-'+str(i), sub_atk, sub_def, sub_tac, skipper)
+
+		# create convoy and subs
+		targets = []
+		for i in range(0,4):
+			targets.append(random.choice(cups['loner']))
+
+		# reveal all and remove stuff
+		totalASW = 0
+		for t in targets:
+			t.visible = True
+
+		targets = [t for t in targets if not (t.type == 'Event' or t.type == 'Draw Liner')]
+
+
+		print(targets)
+		# [28.23] and [28.24]
+		attackResults = []
+		for t in targets:
+
+			if t.type == 'AC':
+				pass
+			else:
+				t.tdc = random.choice(cups['tdc'])
+				result = attackSingleTarget(t, sub, totalASW)
+				attackResults.append(result)
+
+
+				if result.sunk > 0:
+					targets.remove(t)
+
+
+		# one single counter attack
+		defense = counterAttack(totalASW, sub, 1)
+		defense.combine(attackResults)
+
+		defense.printSummary()
+
+		if sub.canReAttack():
+			# second combat round
+			print('Loner reattack round')
+
+			# remove fast units
+			for t in targets:
+				if t.fast:
+					targets.remove(t)
+
+				attackResults = []
+
+				for t in targets:
+					if t.type == 'AC':
+						pass
+					else:
+						t.tdc = random.choice(cups['tdc'])
+						result = attackSingleTarget(t, sub, totalASW)
+						attackResults.append(result)
+
+
+						if result.sunk > 0:
+							targets.remove(t)
+
+
+			# one single counter attack
+			defense2 = counterAttack(totalASW, sub, 1)
+			defense2.combine(attackResults)
+
+			defense2.printSummary()
+			defense.combine([defense2])
+
+
+		results.append(defense)
+
+
+		if sub.eligibleForPromotion():
+			print('Sub eligible for promotion (' + str(sub.targetsSunk) +' tgts, ' + str(sub.tonsSunk) + ' tons)' )
+			result.subPromoted = 1
+			sub.promoteSkipper()
+
+
+	summarizeResults(results)
+
+	filename = 'loners-' + str(sub.attackRating) + str(sub.defenseRating) + str(sub.tacRating) +  '+' + str(sub.skipper)
+	filename += '-wp' + str(warperiod) + '.csv'
+
+	writeResults(filename, results)
+
+
+
 def attackConvoy():
 
 	results = []
@@ -1345,7 +1511,7 @@ def attackConvoy():
 		targets = selectTargets(targets, sub)
 		result = attackTargets(convoy, targets, sub)
 
-		defense = counterAttack(convoy, sub, 1)
+		defense = convoyCounterAttack(convoy, sub, 1)
 		result.combine([defense])
 
 
@@ -1370,7 +1536,7 @@ def attackConvoy():
 			targets = selectTargets(targets, sub)
 			result2 = attackTargets(convoy, targets, sub)
 
-			defense = counterAttack(convoy, sub, 2)
+			defense = convoyCounterAttack(convoy, sub, 2)
 			result.combine([result2, defense])
 
 
@@ -1386,7 +1552,7 @@ def attackConvoy():
 				targets = selectTargets(targets, sub)
 				result3 = attackTargets(convoy, targets, sub)
 
-				defense = counterAttack(convoy, sub, 2)
+				defense = convoyCounterAttack(convoy, sub, 2)
 				result.combine([result3, defense])
 
 		if sub.eligibleForPromotion():
@@ -1419,4 +1585,5 @@ def attackConvoy():
 
 if __name__ == '__main__':
 	random.seed()
-	attackConvoy()
+	#attackConvoy()
+	attackLoners()
