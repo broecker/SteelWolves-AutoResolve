@@ -543,7 +543,7 @@ def compareTonnage(files):
 
 def compareTonnageHarness():
 	
-	wp =1 
+	wp = 3
 	subs = ('212', '332', '423', '533', '666')
 
 	# create filenames	

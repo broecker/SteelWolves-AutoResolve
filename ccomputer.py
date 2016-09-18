@@ -1403,7 +1403,7 @@ def createSubs(subcount, convoy, id):
 
 def attackLonersHarness():
 	subs = [(2,1,2), (3,3,2), (4,2,3), (5,3,3), (6,6,6)]
-	warperiod = 1
+	warperiod = 3
 
 	for skipper in range(0, 3):
 		for sub in subs:
