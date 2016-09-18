@@ -437,7 +437,7 @@ def alignTables(table1, table2):
 
 
 def combineTables(reference, table2, drm):
-	t2 = shiftTable(table2, drm)
+	t2 = shiftTable(table2, drm, False)
 
 	result = []
 	for p in zip(reference, t2):
@@ -465,9 +465,54 @@ def getPercentageRolls(series):
 		d = int(p / 10)
 		print('[0-' + str(d) + '] on 1D10')
 
+def decypherFilename(fn):
+	t = fn.split('-')
 
+	# remove .csv from last item
+	t[-1] = t[-1][0:-4]
+	
+	return t[1]
+
+
+def compareTonnage(files):
+
+	results = []
+
+	for f in files:
+		data = loadFile(f)
+		tons =[r.tgtTons for r in data]
+		tons.sort()
+
+		histo = Histogram('Tonnage ' + decypherFilename(f), tons)
+		results.append(histo)
+
+	tables = []
+	for r in results:
+		t = r.findLinearRange(10)
+		tables.append(t)
+
+	reference = tables[0]
+	drms = [0]
+	for i in range(1, len(tables)):
+		drm = alignTables(reference, tables[i])
+		drms.append(drm)
+		combineTables(reference, tables[i], drm)
+
+	print('Final table:')
+	print(reference)
+	print('DRMs:')
+	for i in zip(files, drms):
+		print(decypherFilename(i[0]) + ': %+d' % i[1])
 
 if __name__ == '__main__':
+	if len(sys.argv) == 1:
+		print('Usage: ' + str(sys.argv[0]) + '<file0> [<file1> <file2>] ... ')
+
+	else:
+		files = sys.argv[1:]
+		compareTonnage(files)
+
+def old():
 	filename ='c1-wp1.csv'
 
 	if len(sys.argv) > 1:

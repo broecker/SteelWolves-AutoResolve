@@ -1374,11 +1374,11 @@ def createSubs(subcount, convoy, id):
 def attackLoners():
 	results = []
 	warperiod = 1
-	skipper = 0
+	skipper = 2
 
-	sub_atk = 3
+	sub_atk = 5
 	sub_def = 3
-	sub_tac =2
+	sub_tac =3
 
 	seedTDCCup(warperiod)
 
