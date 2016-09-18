@@ -523,8 +523,56 @@ def getDD(nation, tons, diligent):
 	dd.diligent = diligent
 	return dd
 
-def getES(nation, diligent):
-	es = Encounter('ES', nation, 2, 2, 1)
+def getES(nation, diligent, wp):
+	# escorts: DD, DE, PF, CT, SL, TB, PG, CG
+
+	pool = []
+	if diligent:
+		pool.append(('SL', 1, 6, 6))
+		
+		if wp >= 4:
+			pool.append(('SL', 1, 6, 5))
+			pool.append(('CT', 1, 6, 4))
+		if wp == 5:
+			pool.append(('CT', 1, 6, 3))
+			pool.append(('CT', 1, 6, 3))
+
+	else:
+
+		pool.append(('ES', 1, 6, 2))
+		pool.append(('SL', 1, 5, 0.5))
+		pool.append(('FP', 1, 8, 2))
+		pool.append(('ML', 3, 4, 0))
+
+		if wp >= 2:
+			pool.append(('CT, 1, 6, 1'))
+			pool.append(('CT, 1, 6, 1'))
+			pool.append(('CT, 1, 6, 1'))
+			pool.append(('CT, 1, 6, 1'))
+			pool.append(('CT, 1, 6, 2'))
+			pool.append(('CT, 1, 6, 2'))
+
+		if wp >= 3:
+			pool.append(('DE', 1, 6, 2))
+			pool.append(('CT', 1, 6, 1))
+			pool.append(('CT', 1, 6, 1))
+			pool.append(('CT', 1, 6, 1))
+			pool.append(('CT', 1, 6, 1))
+			pool.append(('CT', 1, 6, 2))
+			pool.append(('CT', 1, 6, 2))
+			pool.append(('CT', 1, 6, 2))
+			pool.append(('CT', 1, 6, 2))
+			pool.append(('CT', 1, 6, 2))
+		if wp >= 4:
+			pool.append(('SL', 2, 6, 2))
+
+		if wp == 5:
+			pool.append(('DE', 1, 7, 3))
+
+
+	e = random.choice(pool)
+
+	es = Encounter(e[0], nation, e[1], e[2], e[3])
 	es.diligent = diligent
 	return es
 
@@ -622,13 +670,13 @@ def getDDs(count, nation, tons, diligent):
 		dds.append(getDD(nation, tons, diligent))
 	return dds
 
-def getESs(count, nation, diligent):
+def getESs(count, nation, diligent, wp):
 	es = []
 	for i in range(0, count):
-		es.append(getES(nation, diligent))
+		es.append(getES(nation, diligent, wp))
 	return es
 
-def seedCup(config):
+def seedCup(config, wp):
 	''' Note the config is just the column of a single cup/wp read top to bottom.
 		Fill in zeros for no value'''
 	cup = []
@@ -666,9 +714,9 @@ def seedCup(config):
 		cup.append(getAM('british'))
 	cup += getDDs(config[19], 'british/aus/greek/nor', 1, False)
 	cup += getDDs(config[20], 'british/aus/netherland/vichy/poland', 2, False)
-	cup += getESs(config[21], 'british/nor/vichy/poland', False)
+	cup += getESs(config[21], 'british/nor/vichy/poland', False, wp)
 	cup += getDDs(config[22], 'british', 2, True)
-	cup += getESs(config[23], 'british', True)
+	cup += getESs(config[23], 'british', True, wp)
 	cup += getDDs(config[24], 'canadian', 2, False)
 	cup += getDDs(config[25], 'canadian', 2, True)
 
@@ -801,16 +849,16 @@ def seedCups(wp):
 	# WP1 seed
 	for case in switch(wp):
 		if case(1):
-			cups['loner'] = seedCup((1,1,1,0,0,0,0,0,0,0,0,0,1,0,0,0,0,1,1,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,5,14,1,2,2,3,0,0,0,3,0,2,0,0,1,1,0,0,0,1,0,1,1))
-			cups['outer'] = seedCup((1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,2,1,1,0,1,0,0,0,0,1,1,0,0,0,0,3,12,0,2,2,5,0,0,0,2,0,1,0,0,0,1,0,0,0,0,0,0,0))
-			cups['inner'] = seedCup((1,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,1,1,0,0,1,0,0,0,0,0,1,0,0,0,0,0,7,8,0,1,1,3,0,1,0,1,1,1,0,0,0,2,0,0,0,0,0,0,0,0))
-			cups['center'] = seedCup((1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,13,5,1,0,4,2,0,0,1,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0))
+			cups['loner'] = seedCup((1,1,1,0,0,0,0,0,0,0,0,0,1,0,0,0,0,1,1,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,5,14,1,2,2,3,0,0,0,3,0,2,0,0,1,1,0,0,0,1,0,1,1), 1)
+			cups['outer'] = seedCup((1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,2,1,1,0,1,0,0,0,0,1,1,0,0,0,0,3,12,0,2,2,5,0,0,0,2,0,1,0,0,0,1,0,0,0,0,0,0,0), 1)
+			cups['inner'] = seedCup((1,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,1,1,0,0,1,0,0,0,0,0,1,0,0,0,0,0,7,8,0,1,1,3,0,1,0,1,1,1,0,0,0,2,0,0,0,0,0,0,0,0), 1)
+			cups['center'] = seedCup((1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,13,5,1,0,4,2,0,0,1,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0), 1)
 			break;
 		if case(2):
-			cups['loner'] = seedCup((1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,6,9,0,1,3,6,0,1,0,2,0,2,0,0,0,3,0,0,0,1,0,1,1))
-			cups['outer'] = seedCup((1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,2,0,1,1,0,0,0,0,0,0,0,0,0,0,0,4,12,0,1,1,4,0,0,0,3,0,1,0,0,0,1,0,0,0,0,0,0,0))
-			cups['inner'] = seedCup((1,0,1,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,1,1,0,1,0,0,0,0,0,0,0,0,0,0,0,0,9,9,1,0,3,2,0,0,0,1,0,1,0,1,0,1,0,0,0,0,0,0,0))
-			cups['center'] = seedCup((1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,16,5,0,0,3,1,1,0,1,0,1,0,0,0,1,0,0,0,0,0,0,0,0))
+			cups['loner'] = seedCup((1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,6,9,0,1,3,6,0,1,0,2,0,2,0,0,0,3,0,0,0,1,0,1,1), 2)
+			cups['outer'] = seedCup((1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,2,0,1,1,0,0,0,0,0,0,0,0,0,0,0,4,12,0,1,1,4,0,0,0,3,0,1,0,0,0,1,0,0,0,0,0,0,0), 2)
+			cups['inner'] = seedCup((1,0,1,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,1,1,0,1,0,0,0,0,0,0,0,0,0,0,0,0,9,9,1,0,3,2,0,0,0,1,0,1,0,1,0,1,0,0,0,0,0,0,0), 2)
+			cups['center'] = seedCup((1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,16,5,0,0,3,1,1,0,1,0,1,0,0,0,1,0,0,0,0,0,0,0,0), 2)
 			break;
 		if case():
 			print('wp 3+ not yet implemented!')
