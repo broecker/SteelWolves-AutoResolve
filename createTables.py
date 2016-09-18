@@ -406,7 +406,6 @@ def shiftTable(table, drm, keepSize=True):
 			tcp.append(tcp[-1])
 			if keepSize:
 				tcp.pop(0)
-
 	return tcp
 
 
@@ -446,23 +445,6 @@ def combineTables(reference, table2, drm):
 
 	#print(result)
 	return result
-
-def expandTable(reference, table2, drm):
-	t2 =shiftTable(table2, drm, drm > 0)
-	print(t2)
-
-	if len(t2) > len(reference):
-		reference.insert(0, 0)
-
-	result = []
-	for p in zip(reference, t2):
-		r = (p[0] + p[1]) / 2
-		r = math.ceil(r)
-		result.append(int(r))
-
-	#print(result)
-	return result
-	
 
 
 def getPercentageRolls(series):
@@ -518,10 +500,39 @@ def compareTonnage(files):
 
 	print('Result:')
 	print('DRM\tTable')
+	print('-'*79)
+
+
+	maxlen = 0
 	for i in zip(drms, tables):
 		print('%+d' % i[0] + '\t', i[1])
+		maxlen = max(maxlen, len(i[1]))
 
 
+	# expand the tables to the same length
+	for t in tables:
+		
+		d = maxlen - len(t)
+		#print(t, len(t))
+
+		for i in range(0,d):
+			t.append(t[-1])
+
+	# add them up
+	finalTable = []
+	for i in range(0, maxlen):
+		val = 0
+		for t in tables:
+			val += t[i]
+
+		val = float(val)
+		val /= len(tables)
+		val = int(val)
+
+		finalTable.append(val)
+
+	print('-'*79)
+	print('Final:\t', finalTable)
 
 
 
