@@ -534,6 +534,9 @@ def compareTonnage(files):
 	print('-'*79)
 	print('Final:\t', finalTable)
 
+	sub = decypherFilename(f).split('+')[0]
+
+	print(sub[0] + '-' + sub[1] + '-' + sub[2] + '\t\t', finalTable, '\t%+d' %drms[0] + '/%+d' %drms[1] + '/%+d' %drms[2])
 
 
 if __name__ == '__main__':

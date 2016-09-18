@@ -1371,14 +1371,22 @@ def createSubs(subcount, convoy, id):
 
 
 
-def attackLoners():
-	results = []
-	warperiod = 1
-	skipper = 2
+def attackLonersHarness():
+	subs = [(2,1,2), (3,3,2), (4,2,3), (5,3,3), (6,6,6)]
+	warperiod = 2
 
-	sub_atk = 5
-	sub_def = 3
-	sub_tac =3
+	for skipper in range(0, 3):
+		for sub in subs:
+			attackLoners(warperiod, skipper, sub)
+
+
+def attackLoners(warperiod=3, skipper=0, sub_vals = (3,3,2)):
+	results = []
+
+	sub_atk = sub_vals[0]
+	sub_def = sub_vals[1]
+	sub_tac = sub_vals[2]
+
 
 	seedTDCCup(warperiod)
 
@@ -1582,4 +1590,5 @@ def attackConvoy():
 if __name__ == '__main__':
 	random.seed()
 	#attackConvoy()
+	#attackLonersHarness()
 	attackLoners()

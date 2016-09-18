@@ -29,6 +29,10 @@ Spaphir 	2-1-1
 Surcouf		5-5-3
 
 
-
-
+War Period/Torpedo values
+WP 1	-1
+WP 2	0/+1
+WP 3	0/+1
+WP 4	0/+1/+2
+WP 5	+1/+2
 
