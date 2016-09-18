@@ -1400,10 +1400,8 @@ def attackLoners():
 		for t in targets:
 			t.visible = True
 
-		targets = [t for t in targets if not (t.type == 'Event' or t.type == 'Draw Liner')]
+		targets = [t for t in targets if t.isValidTarget()]
 
-
-		print(targets)
 		# [28.23] and [28.24]
 		attackResults = []
 		for t in targets:
@@ -1424,15 +1422,13 @@ def attackLoners():
 		defense = counterAttack(totalASW, sub, 1)
 		defense.combine(attackResults)
 
-		defense.printSummary()
-
 		if sub.canReAttack():
 			# second combat round
 			print('Loner reattack round')
 
 			# remove fast units
 			for t in targets:
-				if t.fast:
+				if t.fast and t.damaged == False:
 					targets.remove(t)
 
 				attackResults = []
@@ -1454,10 +1450,10 @@ def attackLoners():
 			defense2 = counterAttack(totalASW, sub, 1)
 			defense2.combine(attackResults)
 
-			defense2.printSummary()
 			defense.combine([defense2])
 
 
+		defense.printSummary()
 		results.append(defense)
 
 
