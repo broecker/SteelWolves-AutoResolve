@@ -361,9 +361,7 @@ class Histogram:
 		except IndexError:
 			pass
 
-		print(self.name + ' linear range:')
-		#print(table)
-
+		
 		# calculate average values for the table 
 		# TODO: should be weighted? 
 		for i in range(len(table)-1, 1, -1):
@@ -376,7 +374,8 @@ class Histogram:
 			table[i] = val
 
 
-		print(table)
+		#print(self.name + ' linear range:')
+		#print(table)
 		return table
 
 
@@ -431,13 +430,13 @@ def alignTables(table1, table2):
 
 	# pick the best == lowest score
 	results.sort(key=lambda x: x[1])
-	print('Tables aligned with DRM: ' + str(results[0][0]) )
+	print('Tables aligned with DRM: %+d' % results[0][0] + ' (Error: %d)' % results[0][1])
 
 	return results[0][0]
 
 
 def combineTables(reference, table2, drm):
-	t2 = shiftTable(table2, drm, False)
+	t2 = shiftTable(table2, drm)
 
 	result = []
 	for p in zip(reference, t2):
@@ -445,9 +444,25 @@ def combineTables(reference, table2, drm):
 		r = math.ceil(r)
 		result.append(int(r))
 
-	print(result)
+	#print(result)
 	return result
 
+def expandTable(reference, table2, drm):
+	t2 =shiftTable(table2, drm, drm > 0)
+	print(t2)
+
+	if len(t2) > len(reference):
+		reference.insert(0, 0)
+
+	result = []
+	for p in zip(reference, t2):
+		r = (p[0] + p[1]) / 2
+		r = math.ceil(r)
+		result.append(int(r))
+
+	#print(result)
+	return result
+	
 
 
 def getPercentageRolls(series):
@@ -494,15 +509,21 @@ def compareTonnage(files):
 	reference = tables[0]
 	drms = [0]
 	for i in range(1, len(tables)):
-		drm = alignTables(reference, tables[i])
-		drms.append(drm)
-		combineTables(reference, tables[i], drm)
+		t = tables[i]
+		drm = alignTables(reference, t)
+		t = shiftTable(t, drm, False)
 
-	print('Final table:')
-	print(reference)
-	print('DRMs:')
-	for i in zip(files, drms):
-		print(decypherFilename(i[0]) + ': %+d' % i[1])
+		tables[i] = t
+		drms.append(drm)
+
+	print('Result:')
+	print('DRM\tTable')
+	for i in zip(drms, tables):
+		print('%+d' % i[0] + '\t', i[1])
+
+
+
+
 
 if __name__ == '__main__':
 	if len(sys.argv) == 1:
@@ -512,7 +533,7 @@ if __name__ == '__main__':
 		files = sys.argv[1:]
 		compareTonnage(files)
 
-def old():
+def old_and_not_used_anymore_but_kept_for_reference_and_good_luck():
 	filename ='c1-wp1.csv'
 
 	if len(sys.argv) > 1:
