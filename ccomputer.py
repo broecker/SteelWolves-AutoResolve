@@ -545,12 +545,12 @@ def getES(nation, diligent, wp):
 		pool.append(('ML', 3, 4, 0))
 
 		if wp >= 2:
-			pool.append(('CT, 1, 6, 1'))
-			pool.append(('CT, 1, 6, 1'))
-			pool.append(('CT, 1, 6, 1'))
-			pool.append(('CT, 1, 6, 1'))
-			pool.append(('CT, 1, 6, 2'))
-			pool.append(('CT, 1, 6, 2'))
+			pool.append(('CT', 1, 6, 1))
+			pool.append(('CT', 1, 6, 1))
+			pool.append(('CT', 1, 6, 1))
+			pool.append(('CT', 1, 6, 1))
+			pool.append(('CT', 1, 6, 2))
+			pool.append(('CT', 1, 6, 2))
 
 		if wp >= 3:
 			pool.append(('DE', 1, 6, 2))
@@ -571,6 +571,8 @@ def getES(nation, diligent, wp):
 
 
 	e = random.choice(pool)
+
+	print('Drawing escort: ', e)
 
 	es = Encounter(e[0], nation, e[1], e[2], e[3])
 	es.diligent = diligent
@@ -811,32 +813,6 @@ def seedTDCCup(warperiod):
 def drawTDCCounter():
 	return random.choice(cups['tdc'])
 
-
-# This class provides the functionality we want. You only need to look at
-# this if you want to know how this works. It only needs to be defined
-# once, no need to muck around with its internals.
-class switch(object):
-    def __init__(self, value):
-        self.value = value
-        self.fall = False
-
-    def __iter__(self):
-        """Return the match method once, then stop"""
-        yield self.match
-        raise StopIteration
-    
-    def match(self, *args):
-        """Indicate whether or not to enter a case suite"""
-        if self.fall or not args:
-            return True
-        elif self.value in args: # changed for v1.5, see below
-            self.fall = True
-            return True
-        else:
-            return False
-
-
-
 def seedCups(wp):
 	cups['loner'] = []
 	cups['outer'] = []
@@ -847,22 +823,30 @@ def seedCups(wp):
 
 
 	# WP1 seed
-	for case in switch(wp):
-		if case(1):
-			cups['loner'] = seedCup((1,1,1,0,0,0,0,0,0,0,0,0,1,0,0,0,0,1,1,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,5,14,1,2,2,3,0,0,0,3,0,2,0,0,1,1,0,0,0,1,0,1,1), 1)
-			cups['outer'] = seedCup((1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,2,1,1,0,1,0,0,0,0,1,1,0,0,0,0,3,12,0,2,2,5,0,0,0,2,0,1,0,0,0,1,0,0,0,0,0,0,0), 1)
-			cups['inner'] = seedCup((1,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,1,1,0,0,1,0,0,0,0,0,1,0,0,0,0,0,7,8,0,1,1,3,0,1,0,1,1,1,0,0,0,2,0,0,0,0,0,0,0,0), 1)
-			cups['center'] = seedCup((1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,13,5,1,0,4,2,0,0,1,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0), 1)
-			break;
-		if case(2):
-			cups['loner'] = seedCup((1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,6,9,0,1,3,6,0,1,0,2,0,2,0,0,0,3,0,0,0,1,0,1,1), 2)
-			cups['outer'] = seedCup((1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,2,0,1,1,0,0,0,0,0,0,0,0,0,0,0,4,12,0,1,1,4,0,0,0,3,0,1,0,0,0,1,0,0,0,0,0,0,0), 2)
-			cups['inner'] = seedCup((1,0,1,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,1,1,0,1,0,0,0,0,0,0,0,0,0,0,0,0,9,9,1,0,3,2,0,0,0,1,0,1,0,1,0,1,0,0,0,0,0,0,0), 2)
-			cups['center'] = seedCup((1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,16,5,0,0,3,1,1,0,1,0,1,0,0,0,1,0,0,0,0,0,0,0,0), 2)
-			break;
-		if case():
-			print('wp 3+ not yet implemented!')
+	
+	if wp == 1:
+		cups['loner'] = seedCup((1,1,1,0,0,0,0,0,0,0,0,0,1,0,0,0,0,1,1,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,5,14,1,2,2,3,0,0,0,3,0,2,0,0,1,1,0,0,0,1,0,1,1), 1)
+		cups['outer'] = seedCup((1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,2,1,1,0,1,0,0,0,0,1,1,0,0,0,0,3,12,0,2,2,5,0,0,0,2,0,1,0,0,0,1,0,0,0,0,0,0,0), 1)
+		cups['inner'] = seedCup((1,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,1,1,0,0,1,0,0,0,0,0,1,0,0,0,0,0,7,8,0,1,1,3,0,1,0,1,1,1,0,0,0,2,0,0,0,0,0,0,0,0), 1)
+		cups['center'] = seedCup((1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,13,5,1,0,4,2,0,0,1,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0), 1)
 
+	if wp == 2:
+		cups['loner'] = seedCup((1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,6,9,0,1,3,6,0,1,0,2,0,2,0,0,0,3,0,0,0,1,0,1,1), 2)
+		cups['outer'] = seedCup((1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,2,0,1,1,0,0,0,0,0,0,0,0,0,0,0,4,12,0,1,1,4,0,0,0,3,0,1,0,0,0,1,0,0,0,0,0,0,0), 2)
+		cups['inner'] = seedCup((1,0,1,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,1,1,0,1,0,0,0,0,0,0,0,0,0,0,0,0,9,9,1,0,3,2,0,0,0,1,0,1,0,1,0,1,0,0,0,0,0,0,0), 2)
+		cups['center'] = seedCup((1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,16,5,0,0,3,1,1,0,1,0,1,0,0,0,1,0,0,0,0,0,0,0,0), 2)
+
+
+	if wp == 3:
+		cups['loner'] =seedCup((1,1,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,4,12,0,1,2,2,0,0,0,1,0,1,0,1,0,2,0,1,0,1,0,1,1),3)
+		cups['outer'] = seedCup((1,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,2,1,3,1,1,0,0,0,0,0,0,0,0,0,0,2,12,0,0,1,4,0,0,0,0,0,1,0,0,0,1,0,0,0,0,0,0,0,),3)
+		cups['inner'] = seedCup((1,0,0,1,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,1,0,2,1,0,0,0,0,0,0,0,0,0,0,0,8,8,0,1,3,2,0,0,0,1,0,1,0,0,0,0,0,0,0,0,0,0,0),3)
+		cups['center'] = seedCup((1,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,1,0,1,0,0,1,1,0,0,0,0,0,0,0,0,0,0,0,14,2,1,0,2,0,1,0,1,0,1,0,1,0,1,0,0,0,1,0,0,0,0),3)
+		cups['west inner'] = seedCup((1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,1,0,0,2,0,0,0,0,0,0,8,7,0,1,3,3,1,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0),3)
+		cups['west outer'] = seedCup((1,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,2,0,0,1,0,0,3,0,0,0,0,0,0,3,10,0,0,0,4,0,1,0,0,0,1,0,1,0,1,0,0,0,0,0,0,0),3)
+
+	if wp >= 4:
+		print('WP4+ not yet implemented!')
 
 	print('loners: ', len(cups['loner']))
 	print('outer : ', len(cups['outer']))
@@ -1330,7 +1314,7 @@ def attackConvoy():
 
 	results = []
 
-	warperiod = 1
+	warperiod = 3
 	convoyType = 'C1'
 	skipper = 1
 
