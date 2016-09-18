@@ -230,8 +230,11 @@ class Column:
 	def countHidden(self):
 		return sum(t.visible == False for t in self.targets if t)
 
+	def hasFreeSubSlot(self):
+		return len(self.sub_positions) < self.max_subs
+
 	def tryAndPlaceSub(self, sub):
-		if (self.entry == None or sub.tac_roll > self.entry) and len(self.sub_positions) < self.max_subs:
+		if (self.entry == None or sub.tac_roll > self.entry) and self.hasFreeSubSlot():
 			self.sub_positions.append(sub)
 			sub.column = self
 
@@ -472,6 +475,25 @@ class Sub:
 	def promoteSkipper(self):
 		self.skipper = min(self.skipper + 1, 2)
 		print('Sub ' + str(self.name) + ' promotes her skipper to level ' + str(self.skipper))
+
+	def improvePosition(self):
+		currentEntryReq = 0
+		if self.column.entry:
+			currentEntryReq = self.column.entry
+
+		for a in self.column.adjacent:
+			if a.entry and a.entry > currentEntryReq and a.hasFreeSubSlot():
+
+				oc = self.column
+
+				# remove from current column and add to new one
+				self.column.sub_positions.remove(self)
+				a.sub_positions.append(self)
+
+				print('Sub ' + str(self) + ' moves from column ' + str(oc) + ' to ' + str(a))
+
+				return
+
 
 class Wolfpack:
 	def __init__(self, name, subs):
@@ -1303,7 +1325,9 @@ def attackConvoy():
 			increaseStraggle(convoy, result.sunk+result.damaged, 1)
 
 			# try to move up one column
+
 			# TODO - Implement me
+			sub.improvePosition()
 
 
 			# second round of attack
