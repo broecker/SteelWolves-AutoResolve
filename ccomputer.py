@@ -36,6 +36,7 @@ class GlobalValues:
 		self.air_cover = 'light'
 		self.base_straggle_level = 1
 		self.red_dots = 0
+		self.attackIterations = 2000
 
 	def setWP(self, wp):
 
@@ -57,11 +58,11 @@ class GlobalValues:
 			self.red_dots = random.choice([0, 0, 0, 1, 2, 2, 3])
 		if wp == 4:
 			self.asw_value = random.choice((1,1,2,2))
-			self.torp_value = random.choice((0,0,0,1,1,1,2))
+			self.torp_value = random.choice((0,0,1,1,1,1,2,2))
 			self.red_dots = random.choice([0, 0, 0, 0, 1, 1, 2, 3, 3, 3])
 		if wp == 5:
 			self.asw_value = 2
-			self.torp_value = random.choice((2,2,2,3))
+			self.torp_value = random.choice((1,1,2,2))
 			self.red_dots = random.choice([0, 1, 1, 2, 2, 3, 3, 3, 3, 3])
 
 		print('Set global values to: WP:', wp, 'ASW:', self.asw_value, ' torp:', self.torp_value, 'red area:', self.red_dots)
@@ -1402,7 +1403,7 @@ def createSubs(subcount, convoy, id):
 
 def attackLonersHarness():
 	subs = [(2,1,2), (3,3,2), (4,2,3), (5,3,3), (6,6,6)]
-	warperiod = 2
+	warperiod = 1
 
 	for skipper in range(0, 3):
 		for sub in subs:
@@ -1421,7 +1422,7 @@ def attackLoners(warperiod=3, skipper=0, sub_vals = (3,3,2)):
 
 	seedTDCCup(warperiod)
 
-	for i in range(0, 2000):
+	for i in range(0, globals.attackIterations):
 		# refresh the cups periodically
 		if i % 50 == 0:
 			seedCups(warperiod)
@@ -1530,7 +1531,7 @@ def attackConvoy():
 	sub_def = 3
 	sub_tac = 2
 
-	for i in range(0, 2000):
+	for i in range(0, globals.attackIterations):
 
 		# refresh the cups periodically
 		if i % 50 == 0:
@@ -1628,5 +1629,5 @@ def attackConvoy():
 if __name__ == '__main__':
 	random.seed()
 	#attackConvoy()
-	#attackLonersHarness()
-	attackLoners()
+	attackLonersHarness()
+	#attackLoners()

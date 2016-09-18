@@ -536,12 +536,49 @@ def compareTonnage(files):
 
 	sub = decypherFilename(f).split('+')[0]
 
-	print(sub[0] + '-' + sub[1] + '-' + sub[2] + '\t\t', finalTable, '\t%+d' %drms[0] + '/%+d' %drms[1] + '/%+d' %drms[2])
+	finalLine = sub[0] + '-' + sub[1] + '-' + sub[2] + "\t\t" + str(finalTable) + '\t%+d' %drms[0] + '/%+d' %drms[1] + '/%+d' %drms[2]
+	return finalLine
+
+
+
+def compareTonnageHarness():
+	
+	wp =1 
+	subs = ('212', '332', '423', '533', '666')
+
+	# create filenames	
+	files = []
+	for s in subs:
+
+		section = []
+
+		for i in range(0,3):
+			f = 'loners-' + s + '+' + str(i) + '-wp' + str(wp) + '.csv'
+			section.append(f)
+
+		files.append(section)
+
+
+
+	lines = []
+	for f in files:
+		lines.append(compareTonnage(f))
+
+	print('-'*79)
+
+	print('WP ' + str(wp))
+	print('Sub Rating\tTonnage Table\t\t\t\t\t\t\tSkipper DRM')
+	for l in lines:
+		print(l)
+
+
+
 
 
 if __name__ == '__main__':
 	if len(sys.argv) == 1:
 		print('Usage: ' + str(sys.argv[0]) + '<file0> [<file1> <file2>] ... ')
+		compareTonnageHarness()
 
 	else:
 		files = sys.argv[1:]
