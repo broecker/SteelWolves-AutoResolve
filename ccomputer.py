@@ -37,6 +37,29 @@ class GlobalValues:
 		self.base_straggle_level = 1
 		self.red_dots = 0
 
+	def setWP(self, wp):
+		if wp == 1:
+			self.asw_value = 0
+			self.torp_value = -1
+			self.straggle_level = 1
+
+		if wp == 2:
+			self.asw_value = 1
+			self.torp_value = random.choice((0, 0, 0, +1))
+			self.straggle_level = 1
+
+		if wp == 3:
+			self.asw_value = 1
+			self.torp_value =random.choice((0,1))
+		if wp == 4:
+			self.asw_value = random.choice((1,1,2,2))
+			self.torp_value = random.choice((0,0,0,1,1,1,2))
+		if wp == 5:
+			self.asw_value = 2
+			self.torp_value = random.choice((1,1,1,1,2,2))
+
+		print('Set global values to: ASW:', self.asw_value, ' torp:', self.torp_value)
+
 globals = GlobalValues()
 
 
@@ -1383,6 +1406,8 @@ def attackLonersHarness():
 def attackLoners(warperiod=3, skipper=0, sub_vals = (3,3,2)):
 	results = []
 
+	globals.torp_value = 0
+
 	sub_atk = sub_vals[0]
 	sub_def = sub_vals[1]
 	sub_tac = sub_vals[2]
@@ -1394,6 +1419,7 @@ def attackLoners(warperiod=3, skipper=0, sub_vals = (3,3,2)):
 		# refresh the cups periodically
 		if i % 50 == 0:
 			seedCups(warperiod)
+			globals.setWP(warperiod)
 
 
 		sub = Sub('U-'+str(i), sub_atk, sub_def, sub_tac, skipper)
@@ -1498,6 +1524,7 @@ def attackConvoy():
 		# refresh the cups periodically
 		if i % 50 == 0:
 			seedCups(warperiod)
+			globals.setWP(warperiod)
 
 		# create convoy and subs
 		convoy = Convoy(convoyType)
