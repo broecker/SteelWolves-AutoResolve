@@ -38,27 +38,33 @@ class GlobalValues:
 		self.red_dots = 0
 
 	def setWP(self, wp):
+
 		if wp == 1:
 			self.asw_value = 0
 			self.torp_value = -1
 			self.straggle_level = 1
+			self.red_dots = random.choice([0, 0, 0, 1, 2])
 
 		if wp == 2:
 			self.asw_value = 1
 			self.torp_value = random.choice((0, 0, 0, +1))
 			self.straggle_level = 1
+			self.red_dots = random.choice([0, 0, 0, 1, 2])
 
 		if wp == 3:
 			self.asw_value = 1
 			self.torp_value =random.choice((0,1))
+			self.red_dots = random.choice([0, 0, 0, 1, 2, 2, 3])
 		if wp == 4:
 			self.asw_value = random.choice((1,1,2,2))
 			self.torp_value = random.choice((0,0,0,1,1,1,2))
+			self.red_dots = random.choice([0, 0, 0, 0, 1, 1, 2, 3, 3, 3])
 		if wp == 5:
 			self.asw_value = 2
-			self.torp_value = random.choice((1,1,1,1,2,2))
+			self.torp_value = random.choice((2,2,2,3))
+			self.red_dots = random.choice([0, 1, 1, 2, 2, 3, 3, 3, 3, 3])
 
-		print('Set global values to: ASW:', self.asw_value, ' torp:', self.torp_value)
+		print('Set global values to: WP:', wp, 'ASW:', self.asw_value, ' torp:', self.torp_value, 'red area:', self.red_dots)
 
 globals = GlobalValues()
 
@@ -1433,6 +1439,11 @@ def attackLoners(warperiod=3, skipper=0, sub_vals = (3,3,2)):
 		totalASW = 0
 		for t in targets:
 			t.visible = True
+
+			try:
+				totalASW += t.asw
+			except TypeError:
+				pass
 
 		targets = [t for t in targets if t.isValidTarget()]
 
