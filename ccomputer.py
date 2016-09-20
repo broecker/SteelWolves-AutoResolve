@@ -1442,7 +1442,7 @@ def createSubs(subcount, convoy, id):
 
 def attackLonersHarness():
 	subs = [(2,1,2), (3,3,2), (4,2,3), (5,3,3)]
-	warperiod = 3
+	warperiod = 1
 
 	for skipper in range(0, 3):
 		for sub in subs:
@@ -1557,20 +1557,19 @@ def attackLoners(warperiod=3, skipper=0, sub_vals = (3,3,2)):
 
 	writeResults(filename, results)
 
+def attackConvoyHarness():
+	subs = [(2,1,2), (3,3,2), (4,2,3), (5,3,3)]
+	warperiod = 1
+
+	for skipper in range(0, 3):
+		for sub in subs:
+			attackConvoy(warperiod, 'C1', skipper, sub)
+			attackConvoy(warperiod, 'C2', skipper, sub)
 
 
-def attackConvoy():
+def attackConvoy(warperiod=3, convoyType='C1', skipper=0, sub_vals=(3,3,2)):
 
 	results = []
-
-	warperiod = 3
-	convoyType = 'C1'
-	skipper = 1
-
-	# sub rating here
-	sub_atk = 3
-	sub_def = 3
-	sub_tac = 2
 
 	for i in range(0, globals.attackIterations):
 
@@ -1584,7 +1583,7 @@ def attackConvoy():
 		convoy.straggle_level = globals.base_straggle_level
 
 		# create the single(!) sub
-		sub = Sub('U-'+str(i), sub_atk, sub_def, sub_tac, skipper)
+		sub = Sub('U-'+str(i), sub_vals[0], sub_vals[1], sub_vals[2], skipper)
 		convoy.placeSub(sub)
 
 		# first round of attack
@@ -1671,5 +1670,8 @@ def attackConvoy():
 if __name__ == '__main__':
 	random.seed()
 	#attackConvoy()
+	
+
 	attackLonersHarness()
+	attackConvoyHarness()
 	#attackLoners()
