@@ -25,6 +25,9 @@ import sys
 import dieroller
 import math
 
+
+verbose_output = False
+
 class Result:
 	def __init__(self, data):
 		self.name = data[0]
@@ -172,29 +175,30 @@ class Histogram:
 
 	def resample(self, newRange):
 
-	 	print('Resampling to new key range:', newRange)
+		if verbose_output:
+	 		print('Resampling to new key range:', newRange)
 
-	 	newHisto = []
+		newHisto = []
 
-	 	# 1. Fill in existing values
-	 	for i in range(newRange[0], newRange[1]):
-	 		newHisto.append(self.findValue(i))
+			# 1. Fill in existing values
+		for i in range(newRange[0], newRange[1]):
+				newHisto.append(self.findValue(i))
 
-	 	# 2. interpolate for missing values
-	 	for i in range(newRange[0]+1, newRange[1]-1):
-	 		if newHisto[i] == None:
-	 			val = int((newHisto[i-1][1] + newHisto[i+1][1]) * 0.5)
-	 			newHisto[i] = (i, val)
+		# 2. interpolate for missing values
+		for i in range(newRange[0]+1, newRange[1]-1):
+			if newHisto[i] == None:
+				val = int((newHisto[i-1][1] + newHisto[i+1][1]) * 0.5)
+				newHisto[i] = (i, val)
 
-	 	# 3. Handle edge cases - TODO
-	 	if newHisto[0] == None:
-	 		newHisto[0] = newHisto[1]
-	 	if newHisto[-1] == None:
-	 		newHisto[-1] = newHisto[-2]
+		# 3. Handle edge cases - TODO
+		if newHisto[0] == None:
+			newHisto[0] = newHisto[1]
+		if newHisto[-1] == None:
+			newHisto[-1] = newHisto[-2]
 
-	 	self.values = newHisto
-	 	self.minKey = newRange[0]
-	 	self.maxKey = newRange[1]
+		self.values = newHisto
+		self.minKey = newRange[0]
+		self.maxKey = newRange[1]
 
 	def getCompressed(self):
 		maxLength = 10
@@ -244,7 +248,8 @@ class Histogram:
 
 
 		scores.sort(key=lambda x:x[1])
-		print(scores)
+		if verbose_output:
+			print(scores)
 
 
 
@@ -288,8 +293,8 @@ class Histogram:
 			sr = sr * '*'
 
 			
-
-			print( '% 10s' % sl + ' %4d' % leftValue + ' %02d ' % roll + '%4d ' % rightValue + sr)
+			if verbose_output:
+				print( '% 10s' % sl + ' %4d' % leftValue + ' %02d ' % roll + '%4d ' % rightValue + sr)
 
 
 	def compare(self, other):
@@ -410,8 +415,9 @@ def shiftTable(table, drm, keepSize=True):
 
 
 def alignTables(table1, table2):
-	print('Table 1 (reference):', table1)
-	print('Table 2 (target)   :', table2)
+	if verbose_output:
+		print('Table 1 (reference):', table1)
+		print('Table 2 (target)   :', table2)
 
 	results = []
 
@@ -429,8 +435,8 @@ def alignTables(table1, table2):
 
 	# pick the best == lowest score
 	results.sort(key=lambda x: x[1])
-	print('Tables aligned with DRM: %+d' % results[0][0] + ' (Error: %d)' % results[0][1])
-
+	if verbose_output:
+		print('Tables aligned with DRM: %+d' % results[0][0] + ' (Error: %d)' % results[0][1])
 	return results[0][0]
 
 
@@ -449,13 +455,15 @@ def combineTables(reference, table2, drm):
 
 def getPercentageRolls(series, basenumber=0):
 	n = getPercentageRollNumbers(series)
-	if n == None:
-		return '-/-'
-	if type(n[1]) is tuple:
-		return str(basenumber) + '+[' + str(n[1][0]) + '-' + str(n[1][1]) + ']'
-	else:
-		return '[0-' + str(n[1]) + ']'
-
+	try:
+		if n == None:
+			return '-/-'
+		if type(n[1]) is tuple:
+			return str(basenumber) + '+[' + str(n[1][0]) + '-' + str(n[1][1]) + ']'
+		else:
+			return '[0-' + str(n[1]) + ']'
+	except TypeError:
+		raise NotImplementedError
 
 def getPercentageRollNumbers(series):
 	# calculate probability
@@ -508,14 +516,16 @@ def compareTonnage(files):
 		tables[i] = t
 		drms.append(drm)
 
-	print('Result:')
-	print('DRM\tTable')
-	print('-'*79)
+	if verbose_output:
+		print('Result:')
+		print('DRM\tTable')
+		print('-'*79)
 
 
 	maxlen = 0
 	for i in zip(drms, tables):
-		print('%+d' % i[0] + '\t', i[1])
+		if verbose_output:
+			print('%+d' % i[0] + '\t', i[1])
 		maxlen = max(maxlen, len(i[1]))
 
 
@@ -541,17 +551,24 @@ def compareTonnage(files):
 
 		finalTable.append(val)
 
-	print('-'*79)
-	print('Final:\t', finalTable)
+	if verbose_output:
+		print('-'*79)
+		print('Final:\t', finalTable)
 
 	sub = decypherFilename(f).split('+')[0]
 
-	finalLine = sub[0] + '-' + sub[1] + '-' + sub[2] + "\t\t" + str(finalTable) + '\t%+d' %drms[0] + '/%+d' %drms[1] + '/%+d' %drms[2]
+	finalLine = sub[0] + '-' + sub[1] + '-' + sub[2] + '       '
+	finalLine += '% 40s        ' % str(finalTable) 
+	finalLine += '%+2d/ ' % drms[0]
+	finalLine += '%+2d/ ' % drms[1]
+	finalLine += '%+2d' % drms[2]
+
+
+	#"\t\t" + str(finalTable) + '\t%+d' %drms[0] + '/%+d' %drms[1] + '/%+d' %drms[2]
 	return finalLine
 
 
-
-def compareTonnageHarness(warperiod, subs):
+def compareTonnageHarness(warperiod, subs, tgtType):
 
 	# create filenames	
 	files = []
@@ -560,7 +577,7 @@ def compareTonnageHarness(warperiod, subs):
 		section = []
 
 		for i in range(0,3):
-			f = 'loners-' + s + '+' + str(i) + '-wp' + str(warperiod) + '.csv'
+			f = tgtType + '-' + s + '+' + str(i) + '-wp' + str(warperiod) + '.csv'
 			section.append(f)
 
 		files.append(section)
@@ -573,13 +590,13 @@ def compareTonnageHarness(warperiod, subs):
 
 	print('-'*79)
 
-	print('WP ' + str(warperiod))
-	print('Sub Rating\tTonnage Table\t\t\t\t\t\t\tSkipper DRM')
+	print('WP ' + str(warperiod)  + ' - ' + tgtType)
+	print('Sub Rating  Tonnage Table                                   Skipper DRM')
 	for l in lines:
 		print(l)
 
 
-def comparePercentageHarness(warperiod, subs):
+def comparePercentageHarness(warperiod, subs, tgtType):
 
 	# create filenames	
 	files = []
@@ -587,7 +604,7 @@ def comparePercentageHarness(warperiod, subs):
 		section = []
 
 		for i in range(0,3):
-			f = 'C1-' + s + '+' + str(i) + '-wp' + str(warperiod) + '.csv'
+			f = tgtType + '-' + s + '+' + str(i) + '-wp' + str(warperiod) + '.csv'
 			section.append(f)
 
 		files.append(section)
@@ -597,17 +614,16 @@ def comparePercentageHarness(warperiod, subs):
 		for f2 in f:
 			lines.append(comparePercentages2(f2))
 
-	print('-'*79)
-	print('WP ' + str(warperiod))
+	#print('WP ' + str(warperiod) + ' - ' + tgtType)
 	print('Sub Rating     Spotted           RTB       Damaged          Sunk      Promoted')
 	for l in lines:
 		print(l)
 
+	print('-'*79)
+
 
 
 def comparePercentages2(file):
-	
-
 	data = loadFile(file)
 
 	damaged = [r.subsSpotted for r in data]
@@ -656,9 +672,10 @@ if __name__ == '__main__':
 		
 
 		subs = ('212', '332', '423', '533')
+		tgtType = 'loners'
 
-		#compareTonnageHarness(1, subs)
-		comparePercentageHarness(1, subs)
+		compareTonnageHarness(1, subs, tgtType)
+		comparePercentageHarness(1, subs, tgtType)
 
 		#comparePercentages2(['loners-533+0-wp1.csv','loners-533+1-wp1.csv','loners-533+2-wp1.csv'])
 
