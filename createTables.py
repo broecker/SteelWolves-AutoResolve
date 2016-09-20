@@ -557,10 +557,11 @@ def compareTonnage(files):
 
 	sub = decypherFilename(f).split('+')[0]
 
-	finalLine = sub[0] + '-' + sub[1] + '-' + sub[2] + '       '
-	finalLine += '% 40s        ' % str(finalTable) 
-	finalLine += '%+2d/ ' % drms[0]
-	finalLine += '%+2d/ ' % drms[1]
+	finalLine = sub[0] + '-' + sub[1] + '-' + sub[2] + ' '
+	#finalLine += '%50s        ' % str(finalTable) 
+	finalLine += '      ' + str(finalTable).ljust(50, ' ') 
+	finalLine += '%+2d, ' % drms[0]
+	finalLine += '%+2d, ' % drms[1]
 	finalLine += '%+2d' % drms[2]
 
 
@@ -591,7 +592,7 @@ def compareTonnageHarness(warperiod, subs, tgtType):
 	print('-'*79)
 
 	print('WP ' + str(warperiod)  + ' - ' + tgtType)
-	print('Sub Rating  Tonnage Table                                   Skipper DRM')
+	print('Sub Rating  Tonnage Table                                    Skipper DRM')
 	for l in lines:
 		print(l)
 
@@ -661,7 +662,8 @@ def comparePercentages2(file):
 	f += '% 10s    ' % rtbResult
 	f += '% 10s    ' % damageResult
 	f += '% 10s    ' % sunkResult
-	f += '% 10s    ' % promotedResult
+	if skipper < 2:
+		f += '% 10s    ' % promotedResult
 
 	return f
 
