@@ -36,7 +36,8 @@ class GlobalValues:
 		self.air_cover = 'light'
 		self.base_straggle_level = 1
 		self.red_dots = 0
-		self.attackIterations = 2000
+		self.attackIterations = 3000
+		self.verbose_combat = False
 
 	def setWP(self, wp):
 
@@ -172,7 +173,8 @@ class Encounter:
 			self.sunk = True
 
 
-		print('Rolling damage for', self, ':', roll, '(', globals.torp_value, 'torp value) ->', result)
+		if globals.verbose_combat:
+			print('Rolling damage for', self, ':', roll, '(', globals.torp_value, 'torp value) ->', result)
 		return result
 
 
@@ -225,10 +227,12 @@ class Column:
 	def revealCounters(self, n, tryNeigbours=True):
 		result = []
 
-		print('Revealing', n, 'counters in column', self.name)
+		if globals.verbose_combat:
+			print('Revealing', n, 'counters in column', self.name)
 
 		if self.countHidden() < n:
-			print ('Warning, not enough hidden counters remaining in column', self.name)
+			if globals.verbose_combat:
+				print ('Warning, not enough hidden counters remaining in column', self.name)
 						
 			if tryNeigbours:
 				o = n - self.countHidden()
@@ -277,7 +281,8 @@ class Column:
 			self.sub_positions.append(sub)
 			sub.column = self
 
-			print('Placed sub',sub.name,'in column', self.name,' [ roll:', sub.tac_roll, '>', self.entry,']')
+			if globals.verbose_combat:
+				print('Placed sub',sub.name,'in column', self.name,' [ roll:', sub.tac_roll, '>', self.entry,']')
 
 			return True;
 		else:
@@ -468,10 +473,12 @@ class Sub:
 
 		if roll < self.crashDiveRating:
 			self.spotted = True
-			print('Sub', self.name, 'fails to crash dive, becomes spotted')
+			if globals.verbose_combat:
+				print('Sub', self.name, 'fails to crash dive, becomes spotted')
 			return False
 		else:
-			print('Sub', self.name, 'crash dives!')
+			if globals.verbose_combat:
+				print('Sub', self.name, 'crash dives!')
 			return True
 
 	def takeDamage(self, rtb=False):
@@ -482,7 +489,8 @@ class Sub:
 			self.rtb = True
 			rtbText = ' returns to base'
 
-		print('Sub ' + str(self.name) + ' takes damage' + rtbText)
+		if globals.verbose_combat:
+			print('Sub ' + str(self.name) + ' takes damage' + rtbText)
 
 		if self.damage > 1:
 			roll = random.randint(0, 9)
@@ -497,13 +505,15 @@ class Sub:
 
 	def sink(self):
 		self.damage = -1
-		print('Sub ' + str(self.name) + 'sinks')
+		if globals.verbose_combat:
+			print('Sub ' + str(self.name) + 'sinks')
 
 	def eligibleForPromotion(self):
 		return self.tonsSunk >= 23 and self.targetsSunk >= 3
 
 	def claimTarget(self, target):
-		print('Sub ' + self.name + ' is claiming target ' + str(target))
+		if globals.verbose_combat:
+			print('Sub ' + self.name + ' is claiming target ' + str(target))
 		self.tonsSunk += target.tons
 		self.targetsSunk += 1
 
@@ -513,7 +523,8 @@ class Sub:
 
 	def promoteSkipper(self):
 		self.skipper = min(self.skipper + 1, 2)
-		print('Sub ' + str(self.name) + ' promotes her skipper to level ' + str(self.skipper))
+		if globals.verbose_combat:
+			print('Sub ' + str(self.name) + ' promotes her skipper to level ' + str(self.skipper))
 
 	def improvePosition(self):
 		currentEntryReq = 0
@@ -529,7 +540,8 @@ class Sub:
 				self.column.sub_positions.remove(self)
 				a.sub_positions.append(self)
 
-				print('Sub ' + str(self) + ' moves from column ' + str(oc) + ' to ' + str(a))
+				if globals.verbose_combat:
+					print('Sub ' + str(self) + ' moves from column ' + str(oc) + ' to ' + str(a))
 
 				return
 
@@ -1020,7 +1032,8 @@ def revealCounters(convoy, sub):
 
 	tdcCount = min(len(revealed), sub.tacRating)
 
-	print('Sub', sub.name, 'has', len(revealed), 'potential targets, placing', tdcCount, 'TDC markers, tactical rating:', sub.tacRating)
+	if globals.verbose_combat:
+		print('Sub', sub.name, 'has', len(revealed), 'potential targets, placing', tdcCount, 'TDC markers, tactical rating:', sub.tacRating)
 	return revealed
 
 def placeTDC(revealed, sub, combatRound):
@@ -1041,14 +1054,17 @@ def placeTDC(revealed, sub, combatRound):
 	# set TDC markers [14.14]
 	for r in revealed:
 		r.tdc = drawTDCCounter()
-		print('Target/TDC:', r, r.tdc)
+		if globals.verbose_combat:
+			print('Target/TDC:', r, r.tdc)
 
 		# subtract 1 in the reattack round
 	if combatRound > 1:
-		print('Reattack round -- improving target solutions')
+		if globals.verbose_combat:
+			print('Reattack round -- improving target solutions')
 		for r in revealed:
 			r.tdc = max(-4, r.tdc-1)
-			print('Target/TDC:', r, r.tdc)
+			if globals.verbose_combat:
+				print('Target/TDC:', r, r.tdc)
 
 	# re-evaluate target priority with the tdcs
 	def getUpdatedTargetPriority(tgt):
@@ -1065,10 +1081,12 @@ def placeTDC(revealed, sub, combatRound):
 
 		return p
 
-	print(revealed)
+	if globals.verbose_combat:
+		print(revealed)
 
 	revealed.sort(key=getUpdatedTargetPriority, reverse=True)
-	print('Updated target priority:', revealed)
+	if globals.verbose_combat:
+		print('Updated target priority:', revealed)
 
 	return revealed
 
@@ -1103,9 +1121,10 @@ def attackSingleTarget(target, sub, aswValue):
 	if target.damaged:
 		damageMod = -1
 
-	print('Combat vs', target)
-	print('Attack :', attackValue, '[', sub.attackRating, 'attack',sub.skipper,'skipper',globals.torp_value,' torp rating')
-	print('Defense:', aswValue, '[', aswValue, 'ASW', target.tdc,'TDC', damageMod, ' damaged]')
+	if globals.verbose_combat:
+		print('Combat vs', target)
+		print('Attack :', attackValue, '[', sub.attackRating, 'attack',sub.skipper,'skipper',globals.torp_value,' torp rating')
+		print('Defense:', aswValue, '[', aswValue, 'ASW', target.tdc,'TDC', damageMod, ' damaged]')
 	aswValue = aswValue + target.tdc + damageMod
 
 	diff = attackValue - aswValue
@@ -1114,7 +1133,8 @@ def attackSingleTarget(target, sub, aswValue):
 		roll += 1
 
 	if roll <= diff:
-		print('Diff:',diff,'Roll:', roll, 'Target hit')
+		if globals.verbose_combat:
+			print('Diff:',diff,'Roll:', roll, 'Target hit')
 
 		# consult attack results table here
 		d = target.rollForDamage(sub)
@@ -1129,7 +1149,8 @@ def attackSingleTarget(target, sub, aswValue):
 			result.damaged += 1
 
 	else:
-		print('Diff:',diff,'Roll:', roll, 'Target missed')
+		if globals.verbose_combat:
+			print('Diff:',diff,'Roll:', roll, 'Target missed')
 
 	target.tdc = None
 	return result
@@ -1157,9 +1178,10 @@ def attackTargets(convoy, targets, sub):
 		if t.damaged:
 			damageMod = -1
 
-		print('Combat vs', t)
-		print('Attack :', attackValue, '[', sub.attackRating, 'attack',sub.skipper,'skipper',globals.torp_value,' torp rating', convoy.straggle_level, 'convoy straggle]')
-		print('Defense:', aswValue, '[', aswValue, 'ASW', t.tdc,'TDC', columnMod, 'column mod',damageMod, ' damaged]')
+		if globals.verbose_combat:
+			print('Combat vs', t)
+			print('Attack :', attackValue, '[', sub.attackRating, 'attack',sub.skipper,'skipper',globals.torp_value,' torp rating', convoy.straggle_level, 'convoy straggle]')
+			print('Defense:', aswValue, '[', aswValue, 'ASW', t.tdc,'TDC', columnMod, 'column mod',damageMod, ' damaged]')
 		aswValue = aswValue + t.tdc + columnMod + damageMod
 
 		diff = attackValue - aswValue
@@ -1168,7 +1190,8 @@ def attackTargets(convoy, targets, sub):
 			roll += 1
 
 		if roll <= diff:
-			print('Diff:',diff,'Roll:', roll, 'Target hit')
+			if globals.verbose_combat:
+				print('Diff:',diff,'Roll:', roll, 'Target hit')
 
 			# consult attack results table here
 			d = t.rollForDamage(sub)
@@ -1183,7 +1206,8 @@ def attackTargets(convoy, targets, sub):
 				result.damaged += 1
 
 		else:
-			print('Diff:',diff,'Roll:', roll, 'Target missed')
+			if globals.verbose_combat:
+				print('Diff:',diff,'Roll:', roll, 'Target missed')
 
 	# remove tdc markers again
 	for r in targets:
@@ -1202,36 +1226,41 @@ def attackRound(convoy, sub, combatRound):
 
 	for r in revealed:
 		if r and r.type == 'AC':
-			print('Found aircraft!')
+			if globals.verbose_combat:
+				print('Found aircraft!')
 
 			if air_cover == 'light' and random.randint(0,9) > 4:
 				# replace with new draw
-				print('Light air cover, replacing AC with new draw')
+				if globals.verbose_combat:
+					print('Light air cover, replacing AC with new draw')
 				
 				for t in r.column.targets:
-					print(t)
+					if globals.verbose_combat:
+						print(t)
 
 				try:
 					idx = r.column.targets.index(r)
-					print('index:', idx)
-
+					
 					if idx:
 						new_encounter = random.choice(r.column.draw_cup)
 						r.column.targets[idx] = new_encounter
 						new_encounter.visible = True
 
 						revealed.append(r.column.targets[idx])
-						print('Redrew encounter at position ' + str(idx) + ': ' + str(new_encounter))
+						if globals.verbose_combat:
+							print('Redrew encounter at position ' + str(idx) + ': ' + str(new_encounter))
 
 				except ValueError:
 					print('FIXME! AC column index could not be found')
 
 		if r and r.type == 'Event':
 			# ignore events?
-			print('Found event, ignoring it')
+			if globals.verbose_combat:
+				print('Found event, ignoring it')
 
 		if r and r.diligent:
-			print('Found diligent escort')
+			if globals.verbose_combat:
+				print('Found diligent escort')
 			if not sub.crashDive():
 				# roll for damage from diligent escort
 				diligentEscortTable(sub)
@@ -1277,13 +1306,16 @@ def counterAttack(totalASW, sub, combatRound):
 		defense -= 1
 
 	diff = asw - defense
-	print('Counterattack, red boxes:', globals.red_dots, 'global asw:', globals.asw_value)
-	print('Total ASW', asw, 'defense', defense, 'diff', diff)
+	if globals.verbose_combat:
+		print('Counterattack, red boxes:', globals.red_dots, 'global asw:', globals.asw_value)
+	if globals.verbose_combat:
+		print('Total ASW', asw, 'defense', defense, 'diff', diff)
 
 	result = CombatResult(sub) 
 
 	if diff < 0:
-		print('No counterattack, diff:', diff)
+		if globals.verbose_combat:
+			print('No counterattack, diff:', diff)
 	else:
 		# counterattack
 		roll = random.randint(0,9)
@@ -1301,7 +1333,8 @@ def counterAttack(totalASW, sub, combatRound):
 			asw = 8
 		asw = int(asw)
 
-		print('Counterattack roll', roll, 'with asw', asw)
+		if globals.verbose_combat:
+			print('Counterattack roll', roll, 'with asw', asw)
 		# counterattack table [14.2C]
 		# format: [asw] ([spotted], [damaged], [damagedRTB], [damagedRTB+], [sunk-], [sunk])
 		table =	(	([9], [10], [11], [], [], [12]),
@@ -1318,12 +1351,14 @@ def counterAttack(totalASW, sub, combatRound):
 		row = table[asw]
 		
 		if roll < row[0][0]:
-			print('No effect.')
+			if globals.verbose_combat:
+				print('No effect.')
 		else:
 
 			if roll in row[0]:
 				sub.spotted = True
-				print('Sub', sub, 'spotted')
+				if globals.verbose_combat:
+					print('Sub', sub, 'spotted')
 
 			if roll in row[1]:
 				sub.takeDamage(False)
@@ -1357,8 +1392,9 @@ def counterAttack(totalASW, sub, combatRound):
 
 def withdrawSubs(subs, combatRound):
 
-	print('!!!!Withdrawing subs')
-	print('Before:', subs)
+	if globals.verbose_combat:
+		print('!!!!Withdrawing subs')
+		print('Before:', subs)
 
 	# [14.3] Voluntary withdrawal
 	# in our case all RTB, damaged and spotted subs and also all subs 
@@ -1368,7 +1404,8 @@ def withdrawSubs(subs, combatRound):
 		# then remove all subs without elite skipper		
 		subs = [s for s in subs if s.skipper > 0]
 
-	print('After:', subs)
+	if globals.verbose_combat:
+		print('After:', subs)
 
 	return subs
 
@@ -1377,11 +1414,13 @@ def increaseStraggle(convoy, targetsDamagesOrSunk, combatRound):
 	
 	roll = random.randint(0, 9)
 	if roll < targetsDamagesOrSunk or roll == 0:
-		print('Convoy straggle level increases')
+		if globals.verbose_combat:
+			print('Convoy straggle level increases')
 		convoy.straggle_level += 1
 
 	if roll == 9:
-		print('Convoy straggle level decreases')
+		if globals.verbose_combat:
+			print('Convoy straggle level decreases')
 		convoy.straggle_level = max(convoy.straggle_level-1, 0)
 
 
@@ -1402,7 +1441,7 @@ def createSubs(subcount, convoy, id):
 
 
 def attackLonersHarness():
-	subs = [(2,1,2), (3,3,2), (4,2,3), (5,3,3), (6,6,6)]
+	subs = [(2,1,2), (3,3,2), (4,2,3), (5,3,3)]
 	warperiod = 3
 
 	for skipper in range(0, 3):
@@ -1470,7 +1509,8 @@ def attackLoners(warperiod=3, skipper=0, sub_vals = (3,3,2)):
 
 		if sub.canReAttack():
 			# second combat round
-			print('Loner reattack round')
+			if globals.verbose_combat:
+				print('Loner reattack round')
 
 			# remove fast units
 			for t in targets:
@@ -1504,7 +1544,8 @@ def attackLoners(warperiod=3, skipper=0, sub_vals = (3,3,2)):
 
 
 		if sub.eligibleForPromotion():
-			print('Sub eligible for promotion (' + str(sub.targetsSunk) +' tgts, ' + str(sub.tonsSunk) + ' tons)' )
+			if globals.verbose_combat:
+				print('Sub eligible for promotion (' + str(sub.targetsSunk) +' tgts, ' + str(sub.tonsSunk) + ' tons)' )
 			result.subPromoted = 1
 			sub.promoteSkipper()
 
@@ -1599,7 +1640,8 @@ def attackConvoy():
 				result.combine([result3, defense])
 
 		if sub.eligibleForPromotion():
-			print('Sub eligible for promotion (' + str(sub.targetsSunk) +' tgts, ' + str(sub.tonsSunk) + ' tons)' )
+			if globals.verbose_combat:
+				print('Sub eligible for promotion (' + str(sub.targetsSunk) +' tgts, ' + str(sub.tonsSunk) + ' tons)' )
 			result.subPromoted = 1
 			sub.promoteSkipper()
 

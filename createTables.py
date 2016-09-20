@@ -455,12 +455,16 @@ def getPercentageRolls(series):
 	if p < 10:
 		if p < 1:
 			print('Chance too small!')
+			return None
 		else:
 			d = int(p)
 			print('1 on 1D10 + [0-' + str(d) + '] on 1D10')
+			return (1,d)
 	else:
 		d = int(p / 10)
 		print('[0-' + str(d) + '] on 1D10')
+		return (d)
+
 
 def decypherFilename(fn):
 	t = fn.split('-')
@@ -573,12 +577,46 @@ def compareTonnageHarness():
 
 
 
+def comparePercentages(files):
+	for f in files:
+		data = loadFile(f)
+
+		sub = decypherFilename(f).split('+')[0]
+		print(sub[0] + '-' + sub[1] + '-' + sub[2] + "\t\t")
+
+		damaged = [r.subsDamaged for r in data]
+		damaged.sort()
+
+		dmg = getPercentageRolls(damaged)
+		if dmg == None:
+			dmg = ' -'
+		print('Damage:' + str(dmg[1]))
+		
+
+		if False:
+			sunk = [r.subsSunk for r in data]
+			sunk.sort()
+			print('Sunk:')
+			getPercentageRolls(sunk)
+
+			rtb = [r.subsRTB for r in data]
+			rtb.sort()
+			print('RTB:')
+			getPercentageRolls(rtb)
+
+			spotted = [r.subsSpotted for r in data]
+			spotted.sort()
+			print('Spotted:')
+			getPercentageRolls(spotted)
+
 
 
 if __name__ == '__main__':
 	if len(sys.argv) == 1:
 		print('Usage: ' + str(sys.argv[0]) + '<file0> [<file1> <file2>] ... ')
-		compareTonnageHarness()
+		#compareTonnageHarness()
+
+		comparePercentages(['loners-332+0-wp1.csv','loners-332+1-wp1.csv','loners-332+2-wp1.csv'])
 
 	else:
 		files = sys.argv[1:]
