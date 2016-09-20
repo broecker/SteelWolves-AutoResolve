@@ -37,7 +37,7 @@ class GlobalValues:
 		self.base_straggle_level = 1
 		self.red_dots = 0
 		self.attackIterations = 2000
-		self.verbose_combat = False
+		self.verbose_combat = True
 
 	def setWP(self, wp):
 
@@ -288,6 +288,7 @@ class Column:
 
 			return True;
 		else:
+			sub.column = None
 			return False;
 
 	def printColumn(self):
@@ -367,6 +368,9 @@ class Convoy:
 		for c in cols:
 			if c.tryAndPlaceSub(sub):
 				break;
+			else:
+				if globals.verbose_combat:
+					print('Warning, sub ' + str(sub) + ' could not be placed')
 
 
 	def getTotalASWValue(self):
@@ -1659,15 +1663,19 @@ def attackConvoyWolfPackHarness():
 	warperiod = 1
 	wolfpack_sizes = (2, 4, 6, 8, 10)
 
-	for wp in wolfpack_sizes:
-		for sub in subs:
-			for skipper in range(0, 2):
-				attackConvoyWolfPack(warperiod, 'C1', skipper, sub, wp)
-				attackConvoyWolfPack(warperiod, 'C2', skipper, sub, wp)
+	for sub in subs:
+		for wp in wolfpack_sizes:
+			if wp <= 6:
+				attackConvoyWolfPack(warperiod, 'C1', 0, sub, wp)
+				attackConvoyWolfPack(warperiod, 'C1', 1, sub, wp)
+			attackConvoyWolfPack(warperiod, 'C2', 0, sub, wp)
+			attackConvoyWolfPack(warperiod, 'C2', 1, sub, wp)
 
 
 
 def attackConvoyWolfPack(warperiod=3, convoyType='C1', skipper=0, sub_vals=(3,3,2), wolfpack_size=4):
+
+	print('Warperiod ' + str(warperiod) + ' ' + str(wolfpack_size) + ' ship ' + str(sub_vals) + ' wolfpack attacking ' + convoyType)
 
 	results = []
 	for i in range(0, globals.attackIterations):
@@ -1693,8 +1701,15 @@ def attackConvoyWolfPack(warperiod=3, convoyType='C1', skipper=0, sub_vals=(3,3,
 
 		wolfpack = Wolfpack('Wolfpack-' + str(i), subs)
 
+		# move all subs that could not be placed into reserve
+		reserve_subs = [s for s in subs if s.column == None]
+		subs = [s for s in subs if s.column != None]
+
+		#print('Subs:    ', subs)
+		#print('Reserve: ', reserve_subs)
+
+
 		individual_results = []
-		
 		for sub in subs:
 
 			# first round of attack
@@ -1781,4 +1796,4 @@ if __name__ == '__main__':
 	#attackLonersHarness()
 	#attackConvoyHarness()
 	
-	attackConvoyWolfPack(1, 'C1', 0, (3,3,2), 4)
+	attackConvoyWolfPackHarness()

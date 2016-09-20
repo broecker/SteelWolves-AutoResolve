@@ -73,6 +73,43 @@ whether the sub got sunk, damaged, spotted or is returning to base. These files
 can either be loaded into an external program, such as Excel, or be processed 
 in the next step.
 
+If the `globals.verbose_combat` variable is set to `True` there will be a ton
+of output describing the combat, such as:
+```
+Placed sub U-932.0 in column Outer Starboard  [ roll: 5 > None ]
+Warning, sub U-932.1(2-1-2) could not be placed
+Placed sub U-932.1 in column Outer Starboard  [ roll: 7 > None ]
+Revealing 2 counters in column Outer Starboard
+Sub U-932.0 has 2 potential targets, placing 2 TDC markers, tactical rating: 2
+Target/TDC: M5t (1-0) -1
+Target/TDC: M2t (0-0) -1
+[M5t (1-0), M2t (0-0)]
+Updated target priority: [M5t (1-0), M2t (0-0)]
+Combat vs M5t (1-0)
+Attack : 2 [ 2 attack 0 skipper -1  torp rating 1 convoy straggle]
+Defense: 0 [ 0 ASW -2 TDC 0 column mod 0  damaged]
+Diff: 4 Roll: 3 Target hit
+Rolling damage for M5t (1-0) : 2 ( -1 torp value) -> damage
+Counterattack, red boxes: 0 global asw: 0
+Total ASW 0 defense 1 diff -1
+No counterattack, diff: -1
+Revealing 2 counters in column Outer Starboard
+Sub U-932.1 has 4 potential targets, placing 2 TDC markers, tactical rating: 2
+Target/TDC: M5t (1-0) 1
+Target/TDC: M5t (3-0) 0
+[M5t (1-0), M5t (3-0)]
+Updated target priority: [M5t (1-0), M5t (3-0)]
+Combat vs M5t (1-0)
+Attack : 2 [ 2 attack 0 skipper -1  torp rating 1 convoy straggle]
+Defense: 0 [ 0 ASW -1 TDC 0 column mod -1  damaged]
+Diff: 4 Roll: 0 Target hit
+Rolling damage for M5t (1-0) : 3 ( -1 torp value) -> sunk
+Sub U-932.1 is claiming target M5t (1-0)
+Counterattack, red boxes: 0 global asw: 0
+Total ASW 0 defense 1 diff -1
+No counterattack, diff: -1
+```
+
 ### Analyzing the Data
 
 We are looking into different aspects of the output data; mostly we are 
