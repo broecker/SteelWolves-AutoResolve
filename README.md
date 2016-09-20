@@ -115,14 +115,79 @@ analysis but rather looking at the data and seeing what happens and how the
 distribution changes. 
 
 ### Aligning the Tables
-Work-in-progress -- currently based on 'gut feel' and fudging 
+From the distribution calculated above, tables with even spacing and ten 
+entries are created. The tables are aligned by shifting them left and right to
+each other with each shift counting as a single +/-DRM. As needed, the tables 
+are either padded with zeros on the left or the last value on the right. The 
+sum of absolute differences between the tables gives a good estimate of how 
+close these tables are. 
 
+Finally, based on the best DRMs found and their corresponding shifts an average
+result is calculated. These tables are created for both tonnage as well as 
+ships sunk. The shifts and DRMs are calculated for each elite skipper level for
+each submarine individually. 
 
 
 ## Results
 
 The tables are split between war periods and then grouped per submarine 
 based on similar values (eg VIIB and VIIC together).
+
+The final result looks like this (a single sub attacks a large convoy):
+```
+WP 1 - C2
+Sub Rating  Tonnage Table                                    Skipper DRM
+2-1-2       [0, 0, 0, 0, 0, 0, 0, 2, 5, 9, 10, 14, 17]        +0, +2, +3
+3-3-2       [0, 0, 0, 0, 0, 0, 2, 5, 7, 10, 11, 15, 18]       +0, +2, +3
+4-2-3       [0, 0, 0, 0, 0, 1, 4, 6, 9, 12, 14, 18, 21]       +0, +2, +3
+5-3-3       [0, 0, 0, 1, 5, 7, 9, 12, 14, 20, 22, 25, 31, 35] +0, +3, +4
+-------------------------------------------------------------------------------
+Sub Rating  Ships Sunk Table                                 Skipper DRM
+2-1-2       [0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1]           +0, +2, +3
+3-3-2       [0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1]           +0, +2, +3
+4-2-3       [0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1]        +0, +3, +4
+5-3-3       [0, 0, 0, 0, 1, 1, 2, 2, 2, 3, 3, 3, 4, 4]        +0, +3, +4
+Sub Rating     Spotted           RTB       Damaged          Sunk      Promoted
+2-1-2 +0         [0-1]       2+[0-3]         [0-1]       0+[0-2]       9+[0-3]    
+      +1       3+[0-8]       2+[0-4]       1+[0-8]       0+[0-3]       9+[0-4]    
+      +2       3+[0-3]       2+[0-3]       1+[0-3]       0+[0-2]    
+3-3-2 +0       3+[0-4]       2+[0-2]       1+[0-4]       0+[0-2]       9+[0-2]    
+      +1       3+[0-2]       2+[0-3]       1+[0-2]       0+[0-2]       9+[0-3]    
+      +2       3+[0-1]       2+[0-2]       1+[0-1]       0+[0-1]    
+4-2-3 +0       3+[0-8]       2+[0-4]       1+[0-8]       0+[0-2]       9+[0-4]    
+      +1       3+[0-5]       2+[0-6]       1+[0-5]       0+[0-3]       9+[0-6]    
+      +2       3+[0-2]       2+[0-4]       1+[0-2]       0+[0-2]    
+5-3-3 +0       3+[0-4]       2+[0-3]       1+[0-4]       0+[0-1]       9+[0-3]    
+      +1       3+[0-3]       2+[0-4]       1+[0-3]       0+[0-2]       9+[0-4]    
+      +2       3+[0-2]       2+[0-2]       1+[0-2]       0+[0-1]    
+-------------------------------------------------------------------------------
+```
+The primary two tables on top describe both tonnage as well as ships sunk. Note
+that for some tonnages there might be '0' ships sunk due to the underlying 
+statistics. Both tables should ideally combined when importing the data in a 
+layout program or other graphical editor. A result is obtained by rolling a 
+single D10 and modifying it with the elite skipper DRM found on the same line.
+Note that a +1 elite skipper might have a DRM larger than 1! The values are 
+sorted from 0 on the left to 10 and more on the right. 
+
+The lower third contains the combat effect on the submarine with effects from
+spotted to sunk. The notation either gives a die roll range (like [0-1]) or a
+range after rolling a single die (eg roll a 3 + roll within [0-4]).
+
+To use the tables roll 2D10, ideally differently colored. The first roll is 
+used with the skipper DRM to find the tonnage sunk. The same roll is then used
+on the second table to find the number of ships sunk. Finally, if the first 
+roll is an unmodified 0,1,2,3 or 9 find the result of the combat on the table
+below by comparing the second die roll to the given range.  
+
+### Example
+For example, a 4-2-3 sub with a +1 skipper attacks a large convoy. Two D10 are
+rolled for 3 and 8. The first table results in 0 tons sunk (4-2-3 row at 3+2), 
+same goes for the second table (4-2-3 row at 3+3). Next, the unmodified 3 might
+result in the sub becoming spotted but the second roll of 8 is outside the 
+range of [0-5] of this roll.  
+
+This format can then be easily transformed into nicer looking graphical tables.
 
 
 

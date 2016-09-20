@@ -599,6 +599,7 @@ def compareTonnageHarness(warperiod, subs, tgtType):
 	for l in lines:
 		print(l)
 
+
 def compareShipsSunk(files):
 
 	results = []
@@ -765,7 +766,7 @@ if __name__ == '__main__':
 
 		warperiod = 1
 		subs = ('212', '332', '423', '533')
-		tgtType = 'loners'
+		tgtType = 'C2'
 
 		compareTonnageHarness(warperiod, subs, tgtType)
 		compareSunkHarness(warperiod, subs, tgtType)
