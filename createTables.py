@@ -599,19 +599,98 @@ def compareTonnageHarness(warperiod, subs, tgtType):
 	for l in lines:
 		print(l)
 
+def compareShipsSunk(files):
 
-def shipsSunkHarness(warperiod, subs, tgtType):
+	results = []
+
+	for f in files:
+		data = loadFile(f)
+		tons =[r.tgtSunk for r in data]
+		tons.sort()
+
+		histo = Histogram('Tonnage ' + decypherFilename(f), tons)
+		results.append(histo)
+
+	tables = []
+	for r in results:
+		t = r.findLinearRange(10)
+		tables.append(t)
+
+	reference = tables[0]
+	drms = [0]
+	for i in range(1, len(tables)):
+		t = tables[i]
+		drm = alignTables(reference, t)
+		t = shiftTable(t, drm, False)
+
+		tables[i] = t
+		drms.append(drm)
+
+	if verbose_output:
+		print('Result:')
+		print('DRM\tTable')
+		print('-'*79)
+
+
+	maxlen = 0
+	for i in zip(drms, tables):
+		if verbose_output:
+			print('%+d' % i[0] + '\t', i[1])
+		maxlen = max(maxlen, len(i[1]))
+
+
+	# expand the tables to the same length
+	for t in tables:
+		
+		d = maxlen - len(t)
+		#print(t, len(t))
+
+		for i in range(0,d):
+			t.append(t[-1])
+
+	# add them up
+	finalTable = []
+	for i in range(0, maxlen):
+		val = 0
+		for t in tables:
+			val += t[i]
+
+		val = float(val)
+		val /= len(tables)
+		val = int(val)
+
+		finalTable.append(val)
+
+	if verbose_output:
+		print('-'*79)
+		print('Final:\t', finalTable)
+
+	sub = decypherFilename(f).split('+')[0]
+
+	finalLine = sub[0] + '-' + sub[1] + '-' + sub[2] + ' '
+	#finalLine += '%50s        ' % str(finalTable) 
+	finalLine += '      ' + str(finalTable).ljust(50, ' ') 
+	finalLine += '%+2d, ' % drms[0]
+	finalLine += '%+2d, ' % drms[1]
+	finalLine += '%+2d' % drms[2]
+
+
+	#"\t\t" + str(finalTable) + '\t%+d' %drms[0] + '/%+d' %drms[1] + '/%+d' %drms[2]
+	return finalLine
+
+
+def compareSunkHarness(warperiod, subs, tgtType):
 	# create filenames	
 	files = createFilenames(warperiod, subs, tgtType)
 
 	lines = []
 	for f in files:
-		lines.append(compareTonnage(f))
+		lines.append(compareShipsSunk(f))
 
 	print('-'*79)
 
-	print('WP ' + str(warperiod)  + ' - ' + tgtType)
-	print('Sub Rating  Tonnage Table                                    Skipper DRM')
+	#print('WP ' + str(warperiod)  + ' - ' + tgtType)
+	print('Sub Rating  Ships Sunk Table                                 Skipper DRM')
 	for l in lines:
 		print(l)
 
@@ -684,13 +763,13 @@ if __name__ == '__main__':
 		#print('Usage: ' + str(sys.argv[0]) + '<file0> [<file1> <file2>] ... ')
 		
 
+		warperiod = 1
 		subs = ('212', '332', '423', '533')
 		tgtType = 'loners'
 
-		compareTonnageHarness(1, subs, tgtType)
-		comparePercentageHarness(1, subs, tgtType)
-
-		#comparePercentages2(['loners-533+0-wp1.csv','loners-533+1-wp1.csv','loners-533+2-wp1.csv'])
+		compareTonnageHarness(warperiod, subs, tgtType)
+		compareSunkHarness(warperiod, subs, tgtType)
+		comparePercentageHarness(warperiod, subs, tgtType)
 
 	else:
 		files = sys.argv[1:]
