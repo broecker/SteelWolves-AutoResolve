@@ -3,6 +3,7 @@ A combat auto-resolver for the board game 'Steel Wolves' -- Markus Broecker
 <mbrckr@gmail.com>
 
 ![U-87](U_87_Kriegsmarine.jpg "U-87")
+---
 
 ## Introduction
 Steel Wolves has a very detailed tactical sub vs convoy attack simulation built
@@ -74,8 +75,44 @@ in the next step.
 
 ### Analyzing the Data
 
+We are looking into different aspects of the output data; mostly we are 
+interested in tons and ships sunk, subs spotted, damaged or sunk. The data from
+the previous step often exhibits a close to normal distribution, eg the 
+following tonnage data (which compares the effect of having an elite skipper):
 
+```
+  +********* 1315 00  865 *********+
+           *   15 01   14 
+        ****   66 02   55 **
+          **   29 03   39 *
+       *****   90 04  116 ****
+  **********  186 05  299 **********
+          **   42 06   76 ***
+        ****   70 07  114 ****
+          **   44 08   79 ***
+         ***   55 09  100 ***
+          **   33 10   84 ***
+           *   15 11   33 *
+           *   13 12   28 *
+                9 13   18 *
+           *   10 14   23 *
+                1 15   11 
+                2 16   10 
+                1 17   16 *
+                1 18    6 
+                1 19    6 
+                0 20    7 
+                0 21    0 
+```
 
+Note: the format is [histoA] [countA] [tons] [countB] [histoB] with the stars 
+acting as a histogram of the data. In this example, the two data sets are both
+of a small convoy ('C1') attacked by a single (3-3-2) sub with the left data
+having no elite skipper and the right data having a +1 elite skipper. The data
+shows a small effect on tonnage sunk and a large reduction of 0 tons sunk (all
+misses during the attack). Note that this is not a rigorous statistical 
+analysis but rather looking at the data and seeing what happens and how the 
+distribution changes. 
 
 ### Aligning the Tables
 Work-in-progress -- currently based on 'gut feel' and fudging 
