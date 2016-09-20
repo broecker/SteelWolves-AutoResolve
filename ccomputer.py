@@ -1647,9 +1647,6 @@ def attackConvoy(warperiod=3, convoyType='C1', skipper=0, sub_vals=(3,3,2)):
 		result.normalize()
 		results.append(result)
 
-	#for r in results:
-	#	r.printSummary() 
-
 	summarizeResults(results)
 
 	filename = convoyType.lower() + '-' + str(sub.attackRating) + str(sub.defenseRating) + str(sub.tacRating) +  '+' + str(sub.skipper)
@@ -1657,15 +1654,124 @@ def attackConvoy(warperiod=3, convoyType='C1', skipper=0, sub_vals=(3,3,2)):
 
 	writeResults(filename, results)
 
+def attackConvoyWolfPackHarness():
+	subs = [(2,1,2), (3,3,2), (4,2,3), (5,3,3)]
+	warperiod = 1
+	wolfpack_sizes = (2, 4, 6, 8, 10)
+
+	for wp in wolfpack_sizes:
+		for sub in subs:
+			for skipper in range(0, 2):
+				attackConvoyWolfPack(warperiod, 'C1', skipper, sub, wp)
+				attackConvoyWolfPack(warperiod, 'C2', skipper, sub, wp)
 
 
-	#r2 = [r for r in results if r.subPromoted > 0]
-	#if len(r2) > 0:
-	#	print('Skipper promotions:')
-	#	for r in r2:
-	#		r.printSummary()
-	#else:
-	#	print('No skippers promoted.')
+
+def attackConvoyWolfPack(warperiod=3, convoyType='C1', skipper=0, sub_vals=(3,3,2), wolfpack_size=4):
+
+	results = []
+	for i in range(0, globals.attackIterations):
+
+		# refresh the cups periodically
+		if i % 50 == 0:
+			seedCups(warperiod)
+			globals.setWP(warperiod)
+
+		# create convoy and subs
+		convoy = Convoy(convoyType)
+		convoy.straggle_level = globals.base_straggle_level
+
+
+		# create the subs
+		subs = []
+		for k in range(0, wolfpack_size):
+			subname = 'U-' + str(i) + '.' + str(k)
+
+			sub = Sub(subname, sub_vals[0], sub_vals[1], sub_vals[2], skipper)
+			convoy.placeSub(sub)
+			subs.append(sub)
+
+		wolfpack = Wolfpack('Wolfpack-' + str(i), subs)
+
+		individual_results = []
+		
+		for sub in subs:
+
+			# first round of attack
+			targets = revealCounters(convoy, sub)
+
+			seedTDCCup(warperiod)
+			targets = placeTDC(targets, sub, 1)
+			targets = selectTargets(targets, sub)
+			result = attackTargets(convoy, targets, sub)
+
+
+			defense = convoyCounterAttack(convoy, sub, 1)
+			result.combine([defense])
+		individual_results.append(result)
+
+
+		if False:
+			# determine if we go into a reattack round
+			if not (sub.damage > 0 or sub.rtb):
+				# [14.4] Re-attack rounds
+
+				# [29.3] Check for straggle increase
+				increaseStraggle(convoy, result.sunk+result.damaged, 1)
+
+				# try to move up one column
+
+				# TODO - Implement me
+				sub.improvePosition()
+
+
+				# second round of attack
+				targets = revealCounters(convoy, sub)
+
+				seedTDCCup(warperiod)
+				targets = placeTDC(targets, sub, 2)
+				targets = selectTargets(targets, sub)
+				result2 = attackTargets(convoy, targets, sub)
+
+				defense = convoyCounterAttack(convoy, sub, 2)
+				result.combine([result2, defense])
+
+
+				# possible 3rd round of combat
+				if not (sub.damage > 0 or sub.rtb) and sub.skipper > 0:
+
+					increaseStraggle(convoy, result2.sunk+result2.damaged>0, 2)
+
+					targets = revealCounters(convoy, sub)
+					seedTDCCup(warperiod)
+
+					targets = placeTDC(targets, sub, 2)
+					targets = selectTargets(targets, sub)
+					result3 = attackTargets(convoy, targets, sub)
+
+					defense = convoyCounterAttack(convoy, sub, 2)
+					result.combine([result3, defense])
+
+			if sub.eligibleForPromotion():
+				if globals.verbose_combat:
+					print('Sub eligible for promotion (' + str(sub.targetsSunk) +' tgts, ' + str(sub.tonsSunk) + ' tons)' )
+				result.subPromoted = 1
+				sub.promoteSkipper()
+
+		result = CombatResult(wolfpack)
+		result.combine(individual_results)
+		result.normalize()
+		results.append(result)
+
+	summarizeResults(results)
+
+	filename = convoyType.lower() + '-' + str(sub.attackRating) + str(sub.defenseRating) + str(sub.tacRating) +  '+' + str(sub.skipper)
+	filename += '-wp' + str(warperiod) + '_wolfpack' + str(wolfpack_size) + '.csv'
+
+	writeResults(filename, results)
+
+
+
 
 if __name__ == '__main__':
 	random.seed()
@@ -1675,4 +1781,4 @@ if __name__ == '__main__':
 	#attackLonersHarness()
 	#attackConvoyHarness()
 	
-	attackLoners(1, 0, (3,3,2))
+	attackConvoyWolfPack(1, 'C1', 0, (3,3,2), 4)
