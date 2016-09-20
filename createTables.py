@@ -448,22 +448,28 @@ def combineTables(reference, table2, drm):
 
 
 def getPercentageRolls(series):
+	n = getPercentageRollNumbers(series)
+	if n == None:
+		return '-/-'
+	if type(n[1]) is list:
+		return str(n[0]) + '/[0-' + str(n[1]) + ']'
+	else:
+		return '[0-' + str(n[1]) + ']'
 
+
+def getPercentageRollNumbers(series):
 	# calculate probability
 	p = float(sum(series)) / len(series) * 100
 
 	if p < 10:
 		if p < 1:
-			print('Chance too small!')
 			return None
 		else:
 			d = int(p)
-			print('1 on 1D10 + [0-' + str(d) + '] on 1D10')
-			return (1,d)
+			return (0, (0,d))
 	else:
-		d = int(p / 10)
-		print('[0-' + str(d) + '] on 1D10')
-		return (d)
+		d = int(p/10)
+		return (0, d)
 
 
 def decypherFilename(fn):
@@ -545,10 +551,7 @@ def compareTonnage(files):
 
 
 
-def compareTonnageHarness():
-	
-	wp = 3
-	subs = ('212', '332', '423', '533', '666')
+def compareTonnageHarness(warperiod, subs):
 
 	# create filenames	
 	files = []
@@ -557,7 +560,7 @@ def compareTonnageHarness():
 		section = []
 
 		for i in range(0,3):
-			f = 'loners-' + s + '+' + str(i) + '-wp' + str(wp) + '.csv'
+			f = 'loners-' + s + '+' + str(i) + '-wp' + str(warperiod) + '.csv'
 			section.append(f)
 
 		files.append(section)
@@ -570,28 +573,131 @@ def compareTonnageHarness():
 
 	print('-'*79)
 
-	print('WP ' + str(wp))
+	print('WP ' + str(warperiod))
 	print('Sub Rating\tTonnage Table\t\t\t\t\t\t\tSkipper DRM')
 	for l in lines:
 		print(l)
 
 
+def comparePercentageHarness(warperiod, subs):
+
+	# create filenames	
+	files = []
+	for s in subs:
+		section = []
+
+		for i in range(0,3):
+			f = 'C1-' + s + '+' + str(i) + '-wp' + str(warperiod) + '.csv'
+			section.append(f)
+
+		files.append(section)
+
+	lines = []
+	for f in files:
+		for f2 in f:
+			lines.append(comparePercentages2(f2))
+
+	print('-'*79)
+	print('WP ' + str(warperiod))
+	print('Sub Rating     Spotted         RTB     Damaged        Sunk    Promoted')
+	for l in lines:
+		print(l)
+
+
+
+def comparePercentages2(file):
+	
+
+	data = loadFile(file)
+
+	damaged = [r.subsSpotted for r in data]
+	damaged.sort()
+	
+	damageResult = getPercentageRolls(damaged)
+
+	sunk = [r.subsSunk for r in data]
+	sunk.sort()
+	sunkResult = getPercentageRolls(sunk)
+
+	rtb = [r.subsRTB for r in data]
+	rtb.sort()
+	rtbResult = getPercentageRolls(rtb)
+
+	spotted = [r.subsSpotted for r in data]
+	spotted.sort()
+	spottedResult = getPercentageRolls(spotted)
+
+	promoted = [r.subsPromoted for r in data]
+	promoted.sort()
+	promotedResult = getPercentageRolls(promoted)
+
+
+	# start line with sub rating
+	sub = decypherFilename(file)
+	skipper = int(sub.split('+')[1])
+
+	f = sub + '       '
+
+	if skipper > 0:
+		f = '   %+d       ' % skipper
+
+	f += '% 10s\t' % spottedResult
+	f += '% 10s\t' % rtbResult
+	f += '% 10s\t' % damageResult
+	f += '% 10s\t' % sunkResult
+	f += '% 10s' % promotedResult
+
+	return f
+
+
+
 
 def comparePercentages(files):
+	
+	print('Spotted:')
 	for f in files:
+		skipper = int(decypherFilename(f).split('+')[1])
 		data = loadFile(f)
 
+		damaged = [r.subsSpotted for r in data]
+		damaged.sort()
+
 		sub = decypherFilename(f).split('+')[0]
-		print(sub[0] + '-' + sub[1] + '-' + sub[2] + "\t\t")
+		print(sub[0] + '-' + sub[1] + '-' + sub[2] + "\t\t" + getPercentageRolls(damaged) + '\tSkipper ' + str(skipper))
+
+	print('RTB:')
+	for f in files:
+		skipper = int(decypherFilename(f).split('+')[1])
+		data = loadFile(f)
+
+		damaged = [r.subsRTB for r in data]
+		damaged.sort()
+
+		sub = decypherFilename(f).split('+')[0]
+		print(sub[0] + '-' + sub[1] + '-' + sub[2] + "\t\t" + getPercentageRolls(damaged) + '\tSkipper ' + str(skipper))
+
+
+	print('Damaged:')
+	for f in files:
+		skipper = int(decypherFilename(f).split('+')[1])
+		data = loadFile(f)
 
 		damaged = [r.subsDamaged for r in data]
 		damaged.sort()
+		sub = decypherFilename(f).split('+')[0]
+		print(sub[0] + '-' + sub[1] + '-' + sub[2] + "\t\t" + getPercentageRolls(damaged) + '\tSkipper ' + str(skipper))
 
-		dmg = getPercentageRolls(damaged)
-		if dmg == None:
-			dmg = ' -'
-		print('Damage:' + str(dmg[1]))
-		
+	print('Sunk:')
+	for f in files:
+		skipper = int(decypherFilename(f).split('+')[1])
+		data = loadFile(f)
+
+		damaged = [r.subsSunk for r in data]
+		damaged.sort()
+
+		sub = decypherFilename(f).split('+')[0]
+		print(sub[0] + '-' + sub[1] + '-' + sub[2] + "\t\t" + getPercentageRolls(damaged) + '\tSkipper ' + str(skipper))
+
 
 		if False:
 			sunk = [r.subsSunk for r in data]
@@ -613,10 +719,15 @@ def comparePercentages(files):
 
 if __name__ == '__main__':
 	if len(sys.argv) == 1:
-		print('Usage: ' + str(sys.argv[0]) + '<file0> [<file1> <file2>] ... ')
-		#compareTonnageHarness()
+		#print('Usage: ' + str(sys.argv[0]) + '<file0> [<file1> <file2>] ... ')
+		
 
-		comparePercentages(['loners-332+0-wp1.csv','loners-332+1-wp1.csv','loners-332+2-wp1.csv'])
+		subs = ('212', '332', '423', '533')
+
+		#compareTonnageHarness(1, subs)
+		comparePercentageHarness(1, subs)
+
+		#comparePercentages2(['loners-533+0-wp1.csv','loners-533+1-wp1.csv','loners-533+2-wp1.csv'])
 
 	else:
 		files = sys.argv[1:]
