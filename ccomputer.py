@@ -36,7 +36,7 @@ class GlobalValues:
 		self.air_cover = 'light'
 		self.base_straggle_level = 1
 		self.red_dots = 0
-		self.attackIterations = 3000
+		self.attackIterations = 2000
 		self.verbose_combat = False
 
 	def setWP(self, wp):
@@ -1453,12 +1453,10 @@ def attackLonersHarness():
 def attackLoners(warperiod=3, skipper=0, sub_vals = (3,3,2)):
 	results = []
 
-	globals.torp_value = 0
 
 	sub_atk = sub_vals[0]
 	sub_def = sub_vals[1]
 	sub_tac = sub_vals[2]
-
 
 	seedTDCCup(warperiod)
 
@@ -1507,6 +1505,7 @@ def attackLoners(warperiod=3, skipper=0, sub_vals = (3,3,2)):
 		# one single counter attack
 		defense = counterAttack(totalASW, sub, 1)
 		defense.combine(attackResults)
+		defense.printSummary()
 
 		if sub.canReAttack():
 			# second combat round
@@ -1673,6 +1672,7 @@ if __name__ == '__main__':
 	#attackConvoy()
 	
 
-	attackLonersHarness()
-	attackConvoyHarness()
-	#attackLoners()
+	#attackLonersHarness()
+	#attackConvoyHarness()
+	
+	attackLoners(1, 0, (3,3,2))

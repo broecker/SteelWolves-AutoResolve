@@ -488,6 +488,20 @@ def decypherFilename(fn):
 	
 	return t[1]
 
+def createFilenames(warperiod, subs, tgtType):
+	files = []
+	for s in subs:
+
+		section = []
+
+		for i in range(0,3):
+			f = tgtType + '-' + s + '+' + str(i) + '-wp' + str(warperiod) + '.csv'
+			section.append(f)
+
+		files.append(section)
+
+	return files
+
 
 def compareTonnage(files):
 
@@ -572,18 +586,7 @@ def compareTonnage(files):
 def compareTonnageHarness(warperiod, subs, tgtType):
 
 	# create filenames	
-	files = []
-	for s in subs:
-
-		section = []
-
-		for i in range(0,3):
-			f = tgtType + '-' + s + '+' + str(i) + '-wp' + str(warperiod) + '.csv'
-			section.append(f)
-
-		files.append(section)
-
-
+	files = createFilenames(warperiod, subs, tgtType)
 
 	lines = []
 	for f in files:
@@ -597,18 +600,26 @@ def compareTonnageHarness(warperiod, subs, tgtType):
 		print(l)
 
 
-def comparePercentageHarness(warperiod, subs, tgtType):
-
+def shipsSunkHarness(warperiod, subs, tgtType):
 	# create filenames	
-	files = []
-	for s in subs:
-		section = []
+	files = createFilenames(warperiod, subs, tgtType)
 
-		for i in range(0,3):
-			f = tgtType + '-' + s + '+' + str(i) + '-wp' + str(warperiod) + '.csv'
-			section.append(f)
+	lines = []
+	for f in files:
+		lines.append(compareTonnage(f))
 
-		files.append(section)
+	print('-'*79)
+
+	print('WP ' + str(warperiod)  + ' - ' + tgtType)
+	print('Sub Rating  Tonnage Table                                    Skipper DRM')
+	for l in lines:
+		print(l)
+
+
+
+def comparePercentageHarness(warperiod, subs, tgtType):
+	# create filenames	
+	files = createFilenames(warperiod, subs, tgtType)
 
 	lines = []
 	for f in files:
