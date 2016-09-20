@@ -447,12 +447,12 @@ def combineTables(reference, table2, drm):
 	return result
 
 
-def getPercentageRolls(series):
+def getPercentageRolls(series, basenumber=0):
 	n = getPercentageRollNumbers(series)
 	if n == None:
 		return '-/-'
-	if type(n[1]) is list:
-		return str(n[0]) + '/[0-' + str(n[1]) + ']'
+	if type(n[1]) is tuple:
+		return str(basenumber) + '+[' + str(n[1][0]) + '-' + str(n[1][1]) + ']'
 	else:
 		return '[0-' + str(n[1]) + ']'
 
@@ -599,7 +599,7 @@ def comparePercentageHarness(warperiod, subs):
 
 	print('-'*79)
 	print('WP ' + str(warperiod))
-	print('Sub Rating     Spotted         RTB     Damaged        Sunk    Promoted')
+	print('Sub Rating     Spotted           RTB       Damaged          Sunk      Promoted')
 	for l in lines:
 		print(l)
 
@@ -613,39 +613,39 @@ def comparePercentages2(file):
 	damaged = [r.subsSpotted for r in data]
 	damaged.sort()
 	
-	damageResult = getPercentageRolls(damaged)
+	damageResult = getPercentageRolls(damaged, 1)
 
 	sunk = [r.subsSunk for r in data]
 	sunk.sort()
-	sunkResult = getPercentageRolls(sunk)
+	sunkResult = getPercentageRolls(sunk, 0)
 
 	rtb = [r.subsRTB for r in data]
 	rtb.sort()
-	rtbResult = getPercentageRolls(rtb)
+	rtbResult = getPercentageRolls(rtb, 2)
 
 	spotted = [r.subsSpotted for r in data]
 	spotted.sort()
-	spottedResult = getPercentageRolls(spotted)
+	spottedResult = getPercentageRolls(spotted, 3)
 
 	promoted = [r.subsPromoted for r in data]
 	promoted.sort()
-	promotedResult = getPercentageRolls(promoted)
+	promotedResult = getPercentageRolls(promoted, 9)
 
 
 	# start line with sub rating
 	sub = decypherFilename(file)
 	skipper = int(sub.split('+')[1])
 
-	f = sub + '       '
+	f = sub[0] + '-' + sub[1] + '-' + sub[2] + ' +0    '
 
 	if skipper > 0:
-		f = '   %+d       ' % skipper
+		f = '      %+d    ' % skipper
 
-	f += '% 10s\t' % spottedResult
-	f += '% 10s\t' % rtbResult
-	f += '% 10s\t' % damageResult
-	f += '% 10s\t' % sunkResult
-	f += '% 10s' % promotedResult
+	f += '% 10s    ' % spottedResult
+	f += '% 10s    ' % rtbResult
+	f += '% 10s    ' % damageResult
+	f += '% 10s    ' % sunkResult
+	f += '% 10s    ' % promotedResult
 
 	return f
 
