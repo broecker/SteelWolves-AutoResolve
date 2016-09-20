@@ -66,7 +66,8 @@ class GlobalValues:
 			self.torp_value = random.choice((1,1,2,2))
 			self.red_dots = random.choice([0, 1, 1, 2, 2, 3, 3, 3, 3, 3])
 
-		print('Set global values to: WP:', wp, 'ASW:', self.asw_value, ' torp:', self.torp_value, 'red area:', self.red_dots)
+		if self.verbose_combat:
+			print('Set global values to: WP:', wp, 'ASW:', self.asw_value, ' torp:', self.torp_value, 'red area:', self.red_dots)
 
 globals = GlobalValues()
 
@@ -203,8 +204,9 @@ class Column:
 
 	def seed(self, count):
 		if len(self.draw_cup) < count:
-			print('Warning, draw amount exceeds cup!')
-			self.targets = self.draw_cup
+			print('Warning, draw amount exceeds cup! ( count:' + str(count) + ', available: ' + str(len(self.draw_cup)) + ')')
+			print('Draw cup:', self.draw_cup)
+			self.targets = [v for v in self.draw_cup]
 		else:
 			self.targets = random.sample(self.draw_cup, count)
 
@@ -313,8 +315,6 @@ class Convoy:
 		self.columns = []
 		self.straggle_level = 0
 
-
-
 		if type == 'C1':
 			# fill in columns [13.24]
 			os = Column(self, 'Outer Starboard', None, 2, cups['outer'], 6)
@@ -331,12 +331,12 @@ class Convoy:
 
 		if type == 'C2':
 			# fill in columns [13.24]
-			os = Column(self, 'Outer Starboard', None, 3, ['outer'], 6)
-			s = Column(self, 'Starboard', 7, 2, ['inner'], 6)
-			cs = Column(self, 'Center Starboard', 9, 1, ['center'], 6)
-			cp = Column(self, 'Center Port', 9, 1, ['center'], 6)
-			p = Column(self, 'Port', 7, 2, ['inner'], 6)
-			op = Column(self, 'Outer Port', None, 3, ['outer'], 6)
+			os = Column(self, 'Outer Starboard', None, 3, cups['outer'], 6)
+			s = Column(self, 'Starboard', 7, 2, cups['inner'], 6)
+			cs = Column(self, 'Center Starboard', 9, 1, cups['center'], 6)
+			cp = Column(self, 'Center Port', 9, 1, cups['center'], 6)
+			p = Column(self, 'Port', 7, 2, cups['inner'], 6)
+			op = Column(self, 'Outer Port', None, 3, cups['outer'], 6)
 
 			os.setAdjacent([s])
 			s.setAdjacent([os,cs])
@@ -899,12 +899,13 @@ def seedCups(wp):
 	if wp >= 4:
 		print('WP4+ not yet implemented!')
 
-	print('loners: ', len(cups['loner']))
-	print('outer : ', len(cups['outer']))
-	print('inner : ', len(cups['inner']))
-	print('center: ', len(cups['center']))
-	print('west inner: ', len(cups['west inner']))
-	print('west outer: ', len(cups['west outer']))
+	if globals.verbose_combat:
+		print('loners: ', len(cups['loner']))
+		print('outer : ', len(cups['outer']))
+		print('inner : ', len(cups['inner']))
+		print('center: ', len(cups['center']))
+		print('west inner: ', len(cups['west inner']))
+		print('west outer: ', len(cups['west outer']))
 
 	#printCup(cups['loner'])
 	
