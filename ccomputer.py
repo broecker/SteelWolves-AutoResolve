@@ -41,29 +41,39 @@ class GlobalValues:
 
 	def setWP(self, wp):
 
+		# note that the torpedo value is abstracted per warperdiod. Here, it is calculated based on 1) ships sunk 
+		# for 3 VPs as well as the 4 roll required to raise the level by 1. Eg in WP1 the ships sunk required to
+		# raise the torp value to 0 is 105 and on the 3VP column we that value between Nov and Dec '39. That gives
+		# a ratio of 4 months at torp-1 and 6 months at torp+0. The actual level can then be selected randomly.
+		# The annoying part is that the VP list only gives montly, not total ships sunk so we have to add them 
+		# manually.
+
 		if wp == 1:
+			# see example above 
+			self.torp_value = random.choice((-1,-1,0,0,0))
 			self.asw_value = 0
-			self.torp_value = -1
 			self.straggle_level = 1
 			self.red_dots = random.choice([0, 0, 0, 1, 2])
 
 		if wp == 2:
 			self.asw_value = 1
-			self.torp_value = random.choice((0, 0, 0, +1))
+			self.torp_value = 0 
 			self.straggle_level = 1
 			self.red_dots = random.choice([0, 0, 0, 1, 2])
 
 		if wp == 3:
 			self.asw_value = 1
-			self.torp_value =random.choice((0,1))
+			# changes in about Nov '41 -> 7/2
+			self.torp_value = random.choice((0,0,0,0,0,0,0,1,1))
 			self.red_dots = random.choice([0, 0, 0, 1, 2, 2, 3])
 		if wp == 4:
 			self.asw_value = random.choice((1,1,2,2))
-			self.torp_value = random.choice((0,0,1,1,1,1,2,2))
+			self.torp_value = 1
 			self.red_dots = random.choice([0, 0, 0, 0, 1, 1, 2, 3, 3, 3])
 		if wp == 5:
 			self.asw_value = 2
-			self.torp_value = random.choice((1,1,2,2))
+			# changes in Jan '43 -> 6/4
+			self.torp_value = random.choice((1,1,1,2))
 			self.red_dots = random.choice([0, 1, 1, 2, 2, 3, 3, 3, 3, 3])
 
 		if self.verbose_combat:
@@ -1871,5 +1881,5 @@ if __name__ == '__main__':
 	attackLonersHarness()
 	attackConvoyHarness()
 	
-	#attackConvoyWolfPackHarness()
+	attackConvoyWolfPackHarness()
 	
