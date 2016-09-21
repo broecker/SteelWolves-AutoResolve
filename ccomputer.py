@@ -37,7 +37,7 @@ class GlobalValues:
 		self.base_straggle_level = 1
 		self.red_dots = 0
 		self.attackIterations = 2000
-		self.verbose_combat = True
+		self.verbose_combat = False
 
 	def setWP(self, wp):
 
@@ -275,6 +275,9 @@ class Column:
 	def countHidden(self):
 		return sum(t.visible == False for t in self.targets if t)
 
+	def countShips(self):
+		return sum(t.isValidTarget() for t in self.targets if t)
+
 	def hasFreeSubSlot(self):
 		return len(self.sub_positions) < self.max_subs
 
@@ -372,6 +375,8 @@ class Convoy:
 				if globals.verbose_combat:
 					print('Warning, sub ' + str(sub) + ' could not be placed')
 
+		return sub.column != None
+
 
 	def getTotalASWValue(self):
 		a = 0
@@ -380,6 +385,8 @@ class Convoy:
 
 		return math.ceil(a)
 
+	def countShips(self):
+		return sum(c.countShips() for c in self.columns)
 
 class CombatResult:
 	'''Describes and stores the outcome of a single sub vs convoy attack'''
@@ -512,6 +519,11 @@ class Sub:
 		if globals.verbose_combat:
 			print('Sub ' + str(self.name) + 'sinks')
 
+	def retreat(self):
+		self.rtb = True
+		if self.column:
+			self.column.sub_positions.remove(self)
+
 	def eligibleForPromotion(self):
 		return self.tonsSunk >= 23 and self.targetsSunk >= 3
 
@@ -555,7 +567,7 @@ class Wolfpack:
 		self.subs = subs 
 		self.name = name 
 	def __repr__(self):
-		return 'Wolfpack ' + self.name +'(' + str(len(self.subs)) + ' boats)'
+		return self.name +'(' + str(len(self.subs)) + ' boats)'
 
 
 def getEvent(type) : 
@@ -1280,12 +1292,23 @@ def attackRound(convoy, sub, combatRound):
 
 
 
-def convoyCounterAttack(convoy, sub, combatRound):
+def convoyCounterAttack(convoy, sub, combatRound, subs=None):
 	# 14.2
 	# totalASW = self.getTotalASWValue()
 
 	# get asw value in current and adjacent columns
 	immediateColumns = [sub.column] + sub.column.adjacent
+
+	# remove asw values from immediate columns in which other subs are present
+	if subs:
+		for s in subs:
+			if s == sub:
+				continue;
+
+			if s.column in immediateColumns:
+				immediateColumns.remove(s.column)
+
+
 	asw = sum(c.getASWValue() for c in immediateColumns)
 
 	# find remote available asw values from aircraft or cvs
@@ -1452,6 +1475,10 @@ def attackLonersHarness():
 	for skipper in range(0, 3):
 		for sub in subs:
 			attackLoners(warperiod, skipper, sub)
+
+def attackScatteredLoners(sub, targets):
+
+	raise NotImplementedError
 
 
 def attackLoners(warperiod=3, skipper=0, sub_vals = (3,3,2)):
@@ -1689,6 +1716,7 @@ def attackConvoyWolfPack(warperiod=3, convoyType='C1', skipper=0, sub_vals=(3,3,
 		convoy = Convoy(convoyType)
 		convoy.straggle_level = globals.base_straggle_level
 
+		convoyInitialSize = convoy.countShips()
 
 		# create the subs
 		subs = []
@@ -1700,6 +1728,9 @@ def attackConvoyWolfPack(warperiod=3, convoyType='C1', skipper=0, sub_vals=(3,3,
 			subs.append(sub)
 
 		wolfpack = Wolfpack('Wolfpack-' + str(i), subs)
+
+		# reserve all subs for promotions
+		initial_subs = subs
 
 		# move all subs that could not be placed into reserve
 		reserve_subs = [s for s in subs if s.column == None]
@@ -1723,35 +1754,68 @@ def attackConvoyWolfPack(warperiod=3, convoyType='C1', skipper=0, sub_vals=(3,3,
 
 			defense = convoyCounterAttack(convoy, sub, 1)
 			result.combine([defense])
-		individual_results.append(result)
+			individual_results.append(result)
 
 
-		if False:
-			# determine if we go into a reattack round
-			if not (sub.damage > 0 or sub.rtb):
-				# [14.4] Re-attack rounds
 
+		result = CombatResult(wolfpack)
+		result.combine(individual_results)
+
+		individual_results = []
+
+		# determine if we go into a reattack round
+		# sort out all damaged subs
+		for s in subs:
+			if (s.damage > 0 or s.rtb):
+				s.retreat()
+
+		subs = [s for s in subs if not (s.damage > 0 or s.rtb)]
+
+		for s in reserve_subs:
+			
+			if convoy.placeSub(s):
+				subs.append(s)
+				reserve_subs.remove(s)
+
+
+		if len(subs) > 0:
+			# [14.4] Re-attack rounds
+
+			# convoy scatter according to [29.4]
+			if convoyType == 'C2' and convoy.straggle_level > 0 and result.sunk >= (convoyInitialSize/3):
+				print('!!!! Convoy scatter !!!!')
+					
+				scatter_results = []
+				for sub in subs:
+					scatter_results.append(attackScatteredLoners(sub, targets))
+
+				result.combine(scatter_results)
+
+			else:
 				# [29.3] Check for straggle increase
 				increaseStraggle(convoy, result.sunk+result.damaged, 1)
 
-				# try to move up one column
 
-				# TODO - Implement me
-				sub.improvePosition()
-
-
-				# second round of attack
-				targets = revealCounters(convoy, sub)
-
-				seedTDCCup(warperiod)
-				targets = placeTDC(targets, sub, 2)
-				targets = selectTargets(targets, sub)
-				result2 = attackTargets(convoy, targets, sub)
-
-				defense = convoyCounterAttack(convoy, sub, 2)
-				result.combine([result2, defense])
+				for sub in subs:
+					# try to move up one column
+					sub.improvePosition()
 
 
+					# second round of attack
+					targets = revealCounters(convoy, sub)
+
+					seedTDCCup(warperiod)
+					targets = placeTDC(targets, sub, 2)
+					targets = selectTargets(targets, sub)
+					result2 = attackTargets(convoy, targets, sub)
+
+
+					# this gets a bit tricky as subs in adjacent columns negate escort asw values
+					defense = convoyCounterAttack(convoy, sub, 2)
+					result.combine([result2, defense])
+
+
+			if False:
 				# possible 3rd round of combat
 				if not (sub.damage > 0 or sub.rtb) and sub.skipper > 0:
 
@@ -1767,15 +1831,13 @@ def attackConvoyWolfPack(warperiod=3, convoyType='C1', skipper=0, sub_vals=(3,3,
 					defense = convoyCounterAttack(convoy, sub, 2)
 					result.combine([result3, defense])
 
+		for sub in initial_subs:
 			if sub.eligibleForPromotion():
 				if globals.verbose_combat:
 					print('Sub eligible for promotion (' + str(sub.targetsSunk) +' tgts, ' + str(sub.tonsSunk) + ' tons)' )
-				result.subPromoted = 1
+				result.subPromoted += 1
 				sub.promoteSkipper()
 
-		result = CombatResult(wolfpack)
-		result.combine(individual_results)
-		result.normalize()
 		results.append(result)
 
 	summarizeResults(results)
@@ -1796,4 +1858,5 @@ if __name__ == '__main__':
 	#attackLonersHarness()
 	#attackConvoyHarness()
 	
-	attackConvoyWolfPackHarness()
+	#attackConvoyWolfPackHarness()
+	attackConvoyWolfPack(3, 'C2', 0, (3,3,2), 8)
