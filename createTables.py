@@ -488,15 +488,22 @@ def decypherFilename(fn):
 	
 	return t[1]
 
-def createFilenames(warperiod, subs, tgtType):
+def createFilenames(warperiod, subs, tgtType, wolfpack=False):
 	files = []
 	for s in subs:
 
 		section = []
 
-		for i in range(0,3):
-			f = tgtType + '-' + s + '+' + str(i) + '-wp' + str(warperiod) + '.csv'
-			section.append(f)
+		if not wolfpack:
+			for i in range(0,3):
+				f = tgtType + '-' + s + '+' + str(i) + '-wp' + str(warperiod) + '.csv'
+				section.append(f)
+		else:
+			for i in range(2,10,2):
+				skipper = 0
+				f = tgtType + '-' + s + '+' + str(skipper) + '-wp' + str(warperiod) + '_wolfpack' + str(i) + '.csv'
+				section.append(f)
+
 
 		files.append(section)
 
@@ -573,20 +580,24 @@ def compareTonnage(files):
 
 	finalLine = sub[0] + '-' + sub[1] + '-' + sub[2] + ' '
 	#finalLine += '%50s        ' % str(finalTable) 
-	finalLine += '      ' + str(finalTable).ljust(50, ' ') 
-	finalLine += '%+2d, ' % drms[0]
-	finalLine += '%+2d, ' % drms[1]
-	finalLine += '%+2d' % drms[2]
+	finalLine += '   ' + str(finalTable).ljust(60, ' ') 
 
 
-	#"\t\t" + str(finalTable) + '\t%+d' %drms[0] + '/%+d' %drms[1] + '/%+d' %drms[2]
+	for d in drms:
+		finalLine += '%+2d, ' % d
+	
+	#finalLine += '%+2d, ' % drms[0]
+	#finalLine += '%+2d, ' % drms[1]
+	#finalLine += '%+2d' % drms[2]
+
+	finalLine = finalLine[0:-2]
 	return finalLine
 
 
-def compareTonnageHarness(warperiod, subs, tgtType):
+def compareTonnageHarness(warperiod, subs, tgtType, wolfpack):
 
 	# create filenames	
-	files = createFilenames(warperiod, subs, tgtType)
+	files = createFilenames(warperiod, subs, tgtType, wolfpack)
 
 	lines = []
 	for f in files:
@@ -594,8 +605,15 @@ def compareTonnageHarness(warperiod, subs, tgtType):
 
 	print('-'*79)
 
-	print('WP ' + str(warperiod)  + ' - ' + tgtType)
-	print('Sub Rating  Tonnage Table                                    Skipper DRM')
+	if wolfpack:
+		print('WP ' + str(warperiod)  + ' - ' + tgtType + ' Wolfpack')
+		print('Sub Rating  Tonnage Table                                          Wolfpack DRM')
+
+	else:
+		print('WP ' + str(warperiod)  + ' - ' + tgtType)
+		print('Sub Rating  Tonnage Table                                           Skipper DRM')
+
+
 	for l in lines:
 		print(l)
 
@@ -670,19 +688,20 @@ def compareShipsSunk(files):
 
 	finalLine = sub[0] + '-' + sub[1] + '-' + sub[2] + ' '
 	#finalLine += '%50s        ' % str(finalTable) 
-	finalLine += '      ' + str(finalTable).ljust(50, ' ') 
-	finalLine += '%+2d, ' % drms[0]
-	finalLine += '%+2d, ' % drms[1]
-	finalLine += '%+2d' % drms[2]
+	finalLine += '   ' + str(finalTable).ljust(60, ' ') 
+	#finalLine += '%+2d, ' % drms[0]
+	#finalLine += '%+2d, ' % drms[1]
+	#finalLine += '%+2d' % drms[2]
+	for d in drms:
+		finalLine += '%+2d, ' % d
 
-
-	#"\t\t" + str(finalTable) + '\t%+d' %drms[0] + '/%+d' %drms[1] + '/%+d' %drms[2]
+	finalLine = finalLine[0:-2]
 	return finalLine
 
 
-def compareSunkHarness(warperiod, subs, tgtType):
+def compareSunkHarness(warperiod, subs, tgtType, wolfpack):
 	# create filenames	
-	files = createFilenames(warperiod, subs, tgtType)
+	files = createFilenames(warperiod, subs, tgtType, wolfpack)
 
 	lines = []
 	for f in files:
@@ -690,8 +709,14 @@ def compareSunkHarness(warperiod, subs, tgtType):
 
 	print('-'*79)
 
-	#print('WP ' + str(warperiod)  + ' - ' + tgtType)
-	print('Sub Rating  Ships Sunk Table                                 Skipper DRM')
+	if wolfpack:
+		print('WP ' + str(warperiod)  + ' - ' + tgtType + ' Wolfpack')
+		print('Sub Rating  Ships Sunk                                             Wolfpack DRM')
+
+	else:
+		print('WP ' + str(warperiod)  + ' - ' + tgtType)
+		print('Sub Rating  Ships Sunk                                              Skipper DRM')
+
 	for l in lines:
 		print(l)
 
@@ -760,18 +785,13 @@ def comparePercentages2(file):
 
 
 if __name__ == '__main__':
-	if len(sys.argv) == 1:
-		#print('Usage: ' + str(sys.argv[0]) + '<file0> [<file1> <file2>] ... ')
-		
 
-		warperiod = 1
-		subs = ('212', '332', '423', '533')
-		tgtType = 'C2'
+	warperiod = 1
+	subs = ('212', '332', '423', '533')
+	tgtType = 'C2'
+	wolfpack = True
 
-		compareTonnageHarness(warperiod, subs, tgtType)
-		compareSunkHarness(warperiod, subs, tgtType)
-		comparePercentageHarness(warperiod, subs, tgtType)
 
-	else:
-		files = sys.argv[1:]
-		compareTonnage(files)
+	compareTonnageHarness(warperiod, subs, tgtType, wolfpack)
+	compareSunkHarness(warperiod, subs, tgtType, wolfpack)
+	#comparePercentageHarness(warperiod, subs, tgtType)

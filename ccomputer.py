@@ -1518,7 +1518,9 @@ def attackScatteredLoners(sub, targets, reattackPossible=True):
 	# one single counter attack
 	defense = counterAttack(totalASW, sub, 1)
 	defense.combine(attackResults)
-	defense.printSummary()
+	
+	if globals.verbose_combat:
+	 defense.printSummary()
 
 	if reattackPossible and sub.canReAttack():
 		# second combat round
@@ -1551,7 +1553,7 @@ def attackScatteredLoners(sub, targets, reattackPossible=True):
 
 		defense.combine([defense2])
 
-		return defense
+	return defense
 
 
 def attackLoners(warperiod=3, skipper=0, sub_vals = (3,3,2)):
@@ -1580,14 +1582,17 @@ def attackLoners(warperiod=3, skipper=0, sub_vals = (3,3,2)):
 
 		
 		defense = attackScatteredLoners(sub, targets)
-		defense.printSummary()
+		
+		if globals.verbose_combat:
+			defense.printSummary()
+	
 		results.append(defense)
 
 
 		if sub.eligibleForPromotion():
 			if globals.verbose_combat:
 				print('Sub eligible for promotion (' + str(sub.targetsSunk) +' tgts, ' + str(sub.tonsSunk) + ' tons)' )
-			result.subPromoted = 1
+			defense.subPromoted = 1
 			sub.promoteSkipper()
 
 
@@ -1708,7 +1713,7 @@ def attackConvoyWolfPackHarness():
 			attackConvoyWolfPack(warperiod, 'C2', 0, sub, wp)
 			attackConvoyWolfPack(warperiod, 'C2', 1, sub, wp)
 
-
+	print('-'*79)
 
 def attackConvoyWolfPack(warperiod=3, convoyType='C1', skipper=0, sub_vals=(3,3,2), wolfpack_size=4):
 
@@ -1809,7 +1814,6 @@ def attackConvoyWolfPack(warperiod=3, convoyType='C1', skipper=0, sub_vals=(3,3,
 					# try to move up one column
 					sub.improvePosition()
 
-
 					# second round of attack
 					targets = revealCounters(convoy, sub)
 
@@ -1864,8 +1868,8 @@ if __name__ == '__main__':
 	#attackConvoy()
 	
 
-	#attackLonersHarness()
-	#attackConvoyHarness()
+	attackLonersHarness()
+	attackConvoyHarness()
 	
 	#attackConvoyWolfPackHarness()
-	attackConvoyWolfPack(3, 'C2', 2, (5,5,3), 8)
+	
