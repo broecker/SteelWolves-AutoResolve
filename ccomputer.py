@@ -358,6 +358,16 @@ class Convoy:
 		for c in self.columns:
 			c.printColumn()
 
+	def getInnerColumns(self):
+		targets = []
+
+		for c in self.columns:
+			if c.name == 'Starboard' or c.name == 'Port':
+				targets += c.targets
+
+		targets = [t for t in targets if t and t.type != 'Event' and t.type != 'AC']
+		return targets
+
 
 
 	def placeSub(self, sub):
@@ -1476,9 +1486,72 @@ def attackLonersHarness():
 		for sub in subs:
 			attackLoners(warperiod, skipper, sub)
 
-def attackScatteredLoners(sub, targets):
+def attackScatteredLoners(sub, targets, reattackPossible=True):
+	# reveal all and remove stuff
+	totalASW = 0
+	for t in targets:
+		t.visible = True
 
-	raise NotImplementedError
+		try:
+			totalASW += t.asw
+		except TypeError:
+			pass
+
+	targets = [t for t in targets if t.isValidTarget()]
+
+	# [28.23] and [28.24]
+	attackResults = []
+	for t in targets:
+
+		if t.type == 'AC':
+			pass
+		else:
+			t.tdc = random.choice(cups['tdc'])
+			result = attackSingleTarget(t, sub, totalASW)
+			attackResults.append(result)
+
+
+			if result.sunk > 0:
+				targets.remove(t)
+
+
+	# one single counter attack
+	defense = counterAttack(totalASW, sub, 1)
+	defense.combine(attackResults)
+	defense.printSummary()
+
+	if reattackPossible and sub.canReAttack():
+		# second combat round
+		if globals.verbose_combat:
+			print('Loner reattack round')
+
+		# remove fast units
+		for t in targets:
+			if t.fast and t.damaged == False:
+				targets.remove(t)
+
+			attackResults = []
+
+			for t in targets:
+				if t.type == 'AC':
+					pass
+				else:
+					t.tdc = random.choice(cups['tdc'])
+					result = attackSingleTarget(t, sub, totalASW)
+					attackResults.append(result)
+
+
+					if result.sunk > 0:
+						targets.remove(t)
+
+
+		# one single counter attack
+		defense2 = counterAttack(totalASW, sub, 1)
+		defense2.combine(attackResults)
+
+		defense.combine([defense2])
+
+		return defense
 
 
 def attackLoners(warperiod=3, skipper=0, sub_vals = (3,3,2)):
@@ -1505,71 +1578,8 @@ def attackLoners(warperiod=3, skipper=0, sub_vals = (3,3,2)):
 		for i in range(0,4):
 			targets.append(random.choice(cups['loner']))
 
-		# reveal all and remove stuff
-		totalASW = 0
-		for t in targets:
-			t.visible = True
-
-			try:
-				totalASW += t.asw
-			except TypeError:
-				pass
-
-		targets = [t for t in targets if t.isValidTarget()]
-
-		# [28.23] and [28.24]
-		attackResults = []
-		for t in targets:
-
-			if t.type == 'AC':
-				pass
-			else:
-				t.tdc = random.choice(cups['tdc'])
-				result = attackSingleTarget(t, sub, totalASW)
-				attackResults.append(result)
-
-
-				if result.sunk > 0:
-					targets.remove(t)
-
-
-		# one single counter attack
-		defense = counterAttack(totalASW, sub, 1)
-		defense.combine(attackResults)
-		defense.printSummary()
-
-		if sub.canReAttack():
-			# second combat round
-			if globals.verbose_combat:
-				print('Loner reattack round')
-
-			# remove fast units
-			for t in targets:
-				if t.fast and t.damaged == False:
-					targets.remove(t)
-
-				attackResults = []
-
-				for t in targets:
-					if t.type == 'AC':
-						pass
-					else:
-						t.tdc = random.choice(cups['tdc'])
-						result = attackSingleTarget(t, sub, totalASW)
-						attackResults.append(result)
-
-
-						if result.sunk > 0:
-							targets.remove(t)
-
-
-			# one single counter attack
-			defense2 = counterAttack(totalASW, sub, 1)
-			defense2.combine(attackResults)
-
-			defense.combine([defense2])
-
-
+		
+		defense = attackScatteredLoners(sub, targets)
 		defense.printSummary()
 		results.append(defense)
 
@@ -1782,12 +1792,11 @@ def attackConvoyWolfPack(warperiod=3, convoyType='C1', skipper=0, sub_vals=(3,3,
 			# [14.4] Re-attack rounds
 
 			# convoy scatter according to [29.4]
-			if convoyType == 'C2' and convoy.straggle_level > 0 and result.sunk >= (convoyInitialSize/3):
-				print('!!!! Convoy scatter !!!!')
-					
+			if convoyType == 'C2' and convoy.straggle_level > 0 and result.sunk >= (convoyInitialSize/3):	
 				scatter_results = []
 				for sub in subs:
-					scatter_results.append(attackScatteredLoners(sub, targets))
+					targets = random.sample(cups['inner'], 3)
+					scatter_results.append(attackScatteredLoners(sub, targets, False))
 
 				result.combine(scatter_results)
 
@@ -1859,4 +1868,4 @@ if __name__ == '__main__':
 	#attackConvoyHarness()
 	
 	#attackConvoyWolfPackHarness()
-	attackConvoyWolfPack(3, 'C2', 0, (3,3,2), 8)
+	attackConvoyWolfPack(3, 'C2', 2, (5,5,3), 8)
