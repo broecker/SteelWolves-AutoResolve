@@ -30,7 +30,6 @@ cups = {}
 # global values
 class GlobalValues:
 	def __init__(self):
-		self.torp_value = -1
 		self.bdienst = 0
 		self.asw_value = 0
 		self.air_cover = 'light'
@@ -41,39 +40,24 @@ class GlobalValues:
 
 	def setWP(self, wp):
 
-		# note that the torpedo value is abstracted per warperdiod. Here, it is calculated based on 1) ships sunk 
-		# for 3 VPs as well as the 4 roll required to raise the level by 1. Eg in WP1 the ships sunk required to
-		# raise the torp value to 0 is 105 and on the 3VP column we that value between Nov and Dec '39. That gives
-		# a ratio of 4 months at torp-1 and 6 months at torp+0. The actual level can then be selected randomly.
-		# The annoying part is that the VP list only gives montly, not total ships sunk so we have to add them 
-		# manually.
-
 		if wp == 1:
-			# see example above 
-			self.torp_value = random.choice((-1,-1,0,0,0))
 			self.asw_value = 0
 			self.straggle_level = 1
 			self.red_dots = random.choice([0, 0, 0, 1, 2])
 
 		if wp == 2:
 			self.asw_value = 1
-			self.torp_value = 0 
 			self.straggle_level = 1
 			self.red_dots = random.choice([0, 0, 0, 1, 2])
 
 		if wp == 3:
 			self.asw_value = 1
-			# changes in about Nov '41 -> 7/2
-			self.torp_value = random.choice((0,0,0,0,0,0,0,1,1))
 			self.red_dots = random.choice([0, 0, 0, 1, 2, 2, 3])
 		if wp == 4:
 			self.asw_value = random.choice((1,1,2,2))
-			self.torp_value = 1
 			self.red_dots = random.choice([0, 0, 0, 0, 1, 1, 2, 3, 3, 3])
 		if wp == 5:
 			self.asw_value = 2
-			# changes in Jan '43 -> 6/4
-			self.torp_value = random.choice((1,1,1,2))
 			self.red_dots = random.choice([0, 1, 1, 2, 2, 3, 3, 3, 3, 3])
 
 		if self.verbose_combat:
@@ -105,8 +89,8 @@ class Encounter:
 		else:
 			return self.type + ' (' + str(self.defense) + '-' + str(self.asw) + ')'
 
-	def rollForDamage(self, sub):
-		roll = random.randint(0, 9) + globals.torp_value
+	def rollForDamage(self, sub, torp_value):
+		roll = random.randint(0, 9) + torp_value
 		result = 'none'
 
 		if self.tons <= 4:
@@ -185,7 +169,7 @@ class Encounter:
 
 
 		if globals.verbose_combat:
-			print('Rolling damage for', self, ':', roll, '(', globals.torp_value, 'torp value) ->', result)
+			print('Rolling damage for', self, ':', roll, '(', torp_value, 'torp value) ->', result)
 		return result
 
 
@@ -1148,11 +1132,11 @@ def selectTargets(revealed, sub):
 	return targets
 
 
-def attackSingleTarget(target, sub, aswValue):
+def attackSingleTarget(target, sub, aswValue, torp_value):
 	result = CombatResult(sub)
 
 	# 14.16 attack
-	attackValue = sub.attackRating + sub.skipper + globals.torp_value
+	attackValue = sub.attackRating + sub.skipper + torp_value
 
 	damageMod = 0
 	if target.damaged:
@@ -1160,7 +1144,7 @@ def attackSingleTarget(target, sub, aswValue):
 
 	if globals.verbose_combat:
 		print('Combat vs', target)
-		print('Attack :', attackValue, '[', sub.attackRating, 'attack',sub.skipper,'skipper',globals.torp_value,' torp rating')
+		print('Attack :', attackValue, '[', sub.attackRating, 'attack',sub.skipper,'skipper', torp_value,' torp rating')
 		print('Defense:', aswValue, '[', aswValue, 'ASW', target.tdc,'TDC', damageMod, ' damaged]')
 	aswValue = aswValue + target.tdc + damageMod
 
@@ -1174,7 +1158,7 @@ def attackSingleTarget(target, sub, aswValue):
 			print('Diff:',diff,'Roll:', roll, 'Target hit')
 
 		# consult attack results table here
-		d = target.rollForDamage(sub)
+		d = target.rollForDamage(sub, torp_value)
 
 		if d == 'sunk':
 			result.sunk += 1
@@ -1195,13 +1179,13 @@ def attackSingleTarget(target, sub, aswValue):
 
 
 
-def attackTargets(convoy, targets, sub):
+def attackTargets(convoy, targets, sub, torp_value):
 	result = CombatResult(sub)
 
 	# 14.15 targeted escorts
 
 	# 14.16 attack
-	attackValue = sub.attackRating + sub.skipper + globals.torp_value + convoy.straggle_level
+	attackValue = sub.attackRating + sub.skipper + torp_value + convoy.straggle_level
 
 	for t in targets:
 		aswValue = sub.column.getASWValue()
@@ -1217,7 +1201,7 @@ def attackTargets(convoy, targets, sub):
 
 		if globals.verbose_combat:
 			print('Combat vs', t)
-			print('Attack :', attackValue, '[', sub.attackRating, 'attack',sub.skipper,'skipper',globals.torp_value,' torp rating', convoy.straggle_level, 'convoy straggle]')
+			print('Attack :', attackValue, '[', sub.attackRating, 'attack',sub.skipper,'skipper', torp_value,' torp rating', convoy.straggle_level, 'convoy straggle]')
 			print('Defense:', aswValue, '[', aswValue, 'ASW', t.tdc,'TDC', columnMod, 'column mod',damageMod, ' damaged]')
 		aswValue = aswValue + t.tdc + columnMod + damageMod
 
@@ -1231,7 +1215,7 @@ def attackTargets(convoy, targets, sub):
 				print('Diff:',diff,'Roll:', roll, 'Target hit')
 
 			# consult attack results table here
-			d = t.rollForDamage(sub)
+			d = t.rollForDamage(sub, torp_value)
 
 			if d == 'sunk':
 				result.sunk += 1
@@ -1488,15 +1472,14 @@ def createSubs(subcount, convoy, id):
 
 
 
-def attackLonersHarness():
+def attackLonersHarness(warperiod, torp_value):
 	subs = [(2,1,2), (3,3,2), (4,2,3), (5,3,3)]
-	warperiod = 1
 
 	for skipper in range(0, 3):
 		for sub in subs:
-			attackLoners(warperiod, skipper, sub)
+			attackLoners(warperiod, skipper, sub, torp_value)
 
-def attackScatteredLoners(sub, targets, reattackPossible=True):
+def attackScatteredLoners(sub, targets, torp_value, reattackPossible):
 	# reveal all and remove stuff
 	totalASW = 0
 	for t in targets:
@@ -1517,7 +1500,7 @@ def attackScatteredLoners(sub, targets, reattackPossible=True):
 			pass
 		else:
 			t.tdc = random.choice(cups['tdc'])
-			result = attackSingleTarget(t, sub, totalASW)
+			result = attackSingleTarget(t, sub, totalASW, torp_value)
 			attackResults.append(result)
 
 
@@ -1549,7 +1532,7 @@ def attackScatteredLoners(sub, targets, reattackPossible=True):
 					pass
 				else:
 					t.tdc = random.choice(cups['tdc'])
-					result = attackSingleTarget(t, sub, totalASW)
+					result = attackSingleTarget(t, sub, totalASW, torp_value)
 					attackResults.append(result)
 
 
@@ -1566,7 +1549,7 @@ def attackScatteredLoners(sub, targets, reattackPossible=True):
 	return defense
 
 
-def attackLoners(warperiod=3, skipper=0, sub_vals = (3,3,2)):
+def attackLoners(warperiod, skipper, sub_vals, torp_value):
 	results = []
 
 
@@ -1591,7 +1574,7 @@ def attackLoners(warperiod=3, skipper=0, sub_vals = (3,3,2)):
 			targets.append(random.choice(cups['loner']))
 
 		
-		defense = attackScatteredLoners(sub, targets)
+		defense = attackScatteredLoners(sub, targets, torp_value, False)
 		
 		if globals.verbose_combat:
 			defense.printSummary()
@@ -1613,17 +1596,16 @@ def attackLoners(warperiod=3, skipper=0, sub_vals = (3,3,2)):
 
 	writeResults(filename, results)
 
-def attackConvoyHarness():
+def attackConvoyHarness(warperiod, torp_value):
 	subs = [(2,1,2), (3,3,2), (4,2,3), (5,3,3)]
-	warperiod = 1
 
 	for skipper in range(0, 3):
 		for sub in subs:
-			attackConvoy(warperiod, 'C1', skipper, sub)
-			attackConvoy(warperiod, 'C2', skipper, sub)
+			attackConvoy(warperiod, 'C1', skipper, sub, torp_value)
+			attackConvoy(warperiod, 'C2', skipper, sub, torp_value)
 
 
-def attackConvoy(warperiod=3, convoyType='C1', skipper=0, sub_vals=(3,3,2)):
+def attackConvoy(warperiod, convoyType, skipper, sub_vals, torp_value):
 
 	results = []
 
@@ -1648,7 +1630,7 @@ def attackConvoy(warperiod=3, convoyType='C1', skipper=0, sub_vals=(3,3,2)):
 		seedTDCCup(warperiod)
 		targets = placeTDC(targets, sub, 1)
 		targets = selectTargets(targets, sub)
-		result = attackTargets(convoy, targets, sub)
+		result = attackTargets(convoy, targets, sub, torp_value)
 
 		defense = convoyCounterAttack(convoy, sub, 1)
 		result.combine([defense])
@@ -1673,7 +1655,7 @@ def attackConvoy(warperiod=3, convoyType='C1', skipper=0, sub_vals=(3,3,2)):
 			seedTDCCup(warperiod)
 			targets = placeTDC(targets, sub, 2)
 			targets = selectTargets(targets, sub)
-			result2 = attackTargets(convoy, targets, sub)
+			result2 = attackTargets(convoy, targets, sub, torp_value)
 
 			defense = convoyCounterAttack(convoy, sub, 2)
 			result.combine([result2, defense])
@@ -1689,7 +1671,7 @@ def attackConvoy(warperiod=3, convoyType='C1', skipper=0, sub_vals=(3,3,2)):
 
 				targets = placeTDC(targets, sub, 2)
 				targets = selectTargets(targets, sub)
-				result3 = attackTargets(convoy, targets, sub)
+				result3 = attackTargets(convoy, targets, sub, torp_value)
 
 				defense = convoyCounterAttack(convoy, sub, 2)
 				result.combine([result3, defense])
@@ -1710,22 +1692,21 @@ def attackConvoy(warperiod=3, convoyType='C1', skipper=0, sub_vals=(3,3,2)):
 
 	writeResults(filename, results)
 
-def attackConvoyWolfPackHarness():
+def attackConvoyWolfPackHarness(warperiod, torp_value):
 	subs = [(2,1,2), (3,3,2), (4,2,3), (5,3,3)]
-	warperiod = 1
 	wolfpack_sizes = (2, 4, 6, 8, 10)
 
 	for sub in subs:
 		for wp in wolfpack_sizes:
 			if wp <= 6:
-				attackConvoyWolfPack(warperiod, 'C1', 0, sub, wp)
-				attackConvoyWolfPack(warperiod, 'C1', 1, sub, wp)
-			attackConvoyWolfPack(warperiod, 'C2', 0, sub, wp)
-			attackConvoyWolfPack(warperiod, 'C2', 1, sub, wp)
+				attackConvoyWolfPack(warperiod, 'C1', 0, sub, wp, torp_value)
+				attackConvoyWolfPack(warperiod, 'C1', 1, sub, wp, torp_value)
+			attackConvoyWolfPack(warperiod, 'C2', 0, sub, wp, torp_value)
+			attackConvoyWolfPack(warperiod, 'C2', 1, sub, wp, torp_value)
 
 	print('-'*79)
 
-def attackConvoyWolfPack(warperiod=3, convoyType='C1', skipper=0, sub_vals=(3,3,2), wolfpack_size=4):
+def attackConvoyWolfPack(warperiod, convoyType, skipper, sub_vals, wolfpack_size, torp_value):
 
 	print('Warperiod ' + str(warperiod) + ' ' + str(wolfpack_size) + ' ship ' + str(sub_vals) + ' wolfpack attacking ' + convoyType)
 
@@ -1774,7 +1755,7 @@ def attackConvoyWolfPack(warperiod=3, convoyType='C1', skipper=0, sub_vals=(3,3,
 			seedTDCCup(warperiod)
 			targets = placeTDC(targets, sub, 1)
 			targets = selectTargets(targets, sub)
-			result = attackTargets(convoy, targets, sub)
+			result = attackTargets(convoy, targets, sub, torp_value)
 
 
 			defense = convoyCounterAttack(convoy, sub, 1)
@@ -1811,7 +1792,7 @@ def attackConvoyWolfPack(warperiod=3, convoyType='C1', skipper=0, sub_vals=(3,3,
 				scatter_results = []
 				for sub in subs:
 					targets = random.sample(cups['inner'], 3)
-					scatter_results.append(attackScatteredLoners(sub, targets, False))
+					scatter_results.append(attackScatteredLoners(sub, targets, False, torp_value))
 
 				result.combine(scatter_results)
 
@@ -1830,7 +1811,7 @@ def attackConvoyWolfPack(warperiod=3, convoyType='C1', skipper=0, sub_vals=(3,3,
 					seedTDCCup(warperiod)
 					targets = placeTDC(targets, sub, 2)
 					targets = selectTargets(targets, sub)
-					result2 = attackTargets(convoy, targets, sub)
+					result2 = attackTargets(convoy, targets, sub, torp_value)
 
 
 					# this gets a bit tricky as subs in adjacent columns negate escort asw values
@@ -1877,9 +1858,18 @@ if __name__ == '__main__':
 	random.seed()
 	#attackConvoy()
 	
+	warperiod = 1
+	torp_value = -1
 
-	attackLonersHarness()
-	attackConvoyHarness()
+	# in WP 1 40% TP-1 60%0
+	# in WP 2 TP0
+	# in WP 3 20% TP1
+	# in WP 4 TP1
+	# in WP 5 20% TP2
+
+
+	#attackLonersHarness(warperiod, torp_value)
+	#attackConvoyHarness(warperiod, torp_value)
 	
-	attackConvoyWolfPackHarness()
+	attackConvoyWolfPackHarness(warperiod, torp_value)
 	
