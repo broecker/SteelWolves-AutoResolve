@@ -26,7 +26,7 @@ import dieroller
 import math
 
 
-verbose_output = False
+verbose_output = True
 
 class Result:
 	def __init__(self, data):
@@ -480,15 +480,7 @@ def getPercentageRollNumbers(series):
 		return (0, d)
 
 
-def decypherFilename(fn):
-	t = fn.split('-')
-
-	# remove .csv from last item
-	t[-1] = t[-1][0:-4]
-	
-	return t[1]
-
-def createFilenames(warperiod, subs, tgtType, wolfpack=False):
+def createFilenames(warperiod, subs, tgtType, wolfpack, torp_value):
 	files = []
 	for s in subs:
 
@@ -496,14 +488,20 @@ def createFilenames(warperiod, subs, tgtType, wolfpack=False):
 
 		if not wolfpack:
 			for i in range(0,3):
-				f = tgtType + '-' + s + '+' + str(i) + '-wp' + str(warperiod) + '.csv'
+				f = tgtType.lower() + '.' + s 
+				f += '.wp' + str(warperiod)
+				f += '.torp' + str(torp_value)
+				f += '.solo' + str(i)
+				f += '.csv'
 				section.append(f)
 		else:
 			for i in range(2,10,2):
-				skipper = 0
-				f = tgtType + '-' + s + '+' + str(skipper) + '-wp' + str(warperiod) + '_wolfpack' + str(i) + '.csv'
+				f = tgtType.lower() + '.' + s 
+				f += '.wp' + str(warperiod)
+				f += '.torp' + str(torp_value)
+				f += '.wolfpack' + str(i)
+				f += '.csv'
 				section.append(f)
-
 
 		files.append(section)
 
@@ -519,7 +517,7 @@ def compareTonnage(files):
 		tons =[r.tgtTons for r in data]
 		tons.sort()
 
-		histo = Histogram('Tonnage ' + decypherFilename(f), tons)
+		histo = Histogram('Tonnage', tons)
 		results.append(histo)
 
 	tables = []
@@ -576,11 +574,11 @@ def compareTonnage(files):
 		print('-'*79)
 		print('Final:\t', finalTable)
 
-	sub = decypherFilename(f).split('+')[0]
-
+	sub = f.split('.')[1]
+	
 	finalLine = sub[0] + '-' + sub[1] + '-' + sub[2] + ' '
 	#finalLine += '%50s        ' % str(finalTable) 
-	finalLine += '   ' + str(finalTable).ljust(60, ' ') 
+	finalLine += ' ' + str(finalTable).ljust(60, ' ') 
 
 
 	for d in drms:
@@ -594,10 +592,10 @@ def compareTonnage(files):
 	return finalLine
 
 
-def compareTonnageHarness(warperiod, subs, tgtType, wolfpack):
+def compareTonnageHarness(warperiod, subs, tgtType, wolfpack, torp_value):
 
 	# create filenames	
-	files = createFilenames(warperiod, subs, tgtType, wolfpack)
+	files = createFilenames(warperiod, subs, tgtType, wolfpack, torp_value)
 
 	lines = []
 	for f in files:
@@ -606,12 +604,12 @@ def compareTonnageHarness(warperiod, subs, tgtType, wolfpack):
 	print('-'*79)
 
 	if wolfpack:
-		print('WP ' + str(warperiod)  + ' - ' + tgtType + ' Wolfpack')
-		print('Sub Rating  Tonnage Table                                          Wolfpack DRM')
+		print('WP ' + str(warperiod)  + ' - ' + tgtType + ' Wolfpack' + ' Torpedo value: ' + str(torp_value) )
+		print('Sub    Tonnage Table                                               Wolfpack DRM')
 
 	else:
-		print('WP ' + str(warperiod)  + ' - ' + tgtType)
-		print('Sub Rating  Tonnage Table                                           Skipper DRM')
+		print('WP ' + str(warperiod)  + ' - ' + tgtType  + ' Torpedo value: ' + str(torp_value))
+		print('Sub    Tonnage Table                                                Skipper DRM')
 
 
 	for l in lines:
@@ -624,10 +622,10 @@ def compareShipsSunk(files):
 
 	for f in files:
 		data = loadFile(f)
-		tons =[r.tgtSunk for r in data]
-		tons.sort()
+		sunk =[r.tgtSunk for r in data]
+		sunk.sort()
 
-		histo = Histogram('Tonnage ' + decypherFilename(f), tons)
+		histo = Histogram('Ships sunk', sunk)
 		results.append(histo)
 
 	tables = []
@@ -684,11 +682,11 @@ def compareShipsSunk(files):
 		print('-'*79)
 		print('Final:\t', finalTable)
 
-	sub = decypherFilename(f).split('+')[0]
+	sub = f.split('.')[1]
 
 	finalLine = sub[0] + '-' + sub[1] + '-' + sub[2] + ' '
 	#finalLine += '%50s        ' % str(finalTable) 
-	finalLine += '   ' + str(finalTable).ljust(60, ' ') 
+	finalLine += ' ' + str(finalTable).ljust(60, ' ') 
 	#finalLine += '%+2d, ' % drms[0]
 	#finalLine += '%+2d, ' % drms[1]
 	#finalLine += '%+2d' % drms[2]
@@ -699,9 +697,9 @@ def compareShipsSunk(files):
 	return finalLine
 
 
-def compareSunkHarness(warperiod, subs, tgtType, wolfpack):
+def compareSunkHarness(warperiod, subs, tgtType, wolfpack, torp_value):
 	# create filenames	
-	files = createFilenames(warperiod, subs, tgtType, wolfpack)
+	files = createFilenames(warperiod, subs, tgtType, wolfpack, torp_value)
 
 	lines = []
 	for f in files:
@@ -710,21 +708,21 @@ def compareSunkHarness(warperiod, subs, tgtType, wolfpack):
 	print('-'*79)
 
 	if wolfpack:
-		print('WP ' + str(warperiod)  + ' - ' + tgtType + ' Wolfpack')
-		print('Sub Rating  Ships Sunk                                             Wolfpack DRM')
+		print('WP ' + str(warperiod)  + ' - ' + tgtType + ' Wolfpack' + ' Torpedo value: ' + str(torp_value))
+		print('Sub    Ships Sunk                                                   Wolfpack DRM')
 
 	else:
-		print('WP ' + str(warperiod)  + ' - ' + tgtType)
-		print('Sub Rating  Ships Sunk                                              Skipper DRM')
+		print('WP ' + str(warperiod)  + ' - ' + tgtType + ' Torpedo value: ' + str(torp_value))
+		print('Sub    Ships Sunk                                                   Skipper DRM')
 
 	for l in lines:
 		print(l)
 
 
 
-def comparePercentageHarness(warperiod, subs, tgtType):
+def comparePercentageHarness(warperiod, subs, tgtType, wolfpack, torp_value):
 	# create filenames	
-	files = createFilenames(warperiod, subs, tgtType)
+	files = createFilenames(warperiod, subs, tgtType, wolfpack,  torp_value)
 
 	lines = []
 	for f in files:
@@ -766,20 +764,21 @@ def comparePercentages2(file):
 
 
 	# start line with sub rating
-	sub = decypherFilename(file)
-	skipper = int(sub.split('+')[1])
+	sub = file.split('.')[1]
 
-	f = sub[0] + '-' + sub[1] + '-' + sub[2] + ' +0    '
+	f = sub[0] + '-' + sub[1] + '-' + sub[2] + '       '
 
-	if skipper > 0:
-		f = '      %+d    ' % skipper
+	#if skipper > 0:
+	#	f = '      %+d    ' % skipper
 
 	f += '% 10s    ' % spottedResult
 	f += '% 10s    ' % rtbResult
 	f += '% 10s    ' % damageResult
 	f += '% 10s    ' % sunkResult
-	if skipper < 2:
-		f += '% 10s    ' % promotedResult
+	if not wolfpack:
+		skipper = int(file.split('.')[4][4])
+		if skipper < 2:
+			f += '% 10s    ' % promotedResult
 
 	return f
 
@@ -789,9 +788,9 @@ if __name__ == '__main__':
 	warperiod = 1
 	subs = ('212', '332', '423', '533')
 	tgtType = 'C2'
-	wolfpack = True
+	wolfpack = False
+	torp_value = -1
 
-
-	compareTonnageHarness(warperiod, subs, tgtType, wolfpack)
-	compareSunkHarness(warperiod, subs, tgtType, wolfpack)
-	#comparePercentageHarness(warperiod, subs, tgtType)
+	#compareTonnageHarness(warperiod, subs, tgtType, wolfpack, torp_value)
+	#compareSunkHarness(warperiod, subs, tgtType, wolfpack, torp_value)
+	comparePercentageHarness(warperiod, subs, tgtType, wolfpack, torp_value)

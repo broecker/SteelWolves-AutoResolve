@@ -1595,7 +1595,7 @@ def attackLoners(warperiod, skipper, sub_vals, torp_value):
 	filename += '.wp' + str(warperiod)
 	filename += '.torp' + str(torp_value)
 	filename += '.solo' + str(sub.skipper)
-	filename + '.csv'
+	filename += '.csv'
 
 	writeResults(filename, results)
 
@@ -1690,11 +1690,11 @@ def attackConvoy(warperiod, convoyType, skipper, sub_vals, torp_value):
 
 	summarizeResults(results)
 
-	filename = convoyType.lower() + '.' + str(sub.attackRating) + str(sub.defenseRating) + str(sub.tacRating) +  '+'
+	filename = convoyType.lower() + '.' + str(sub.attackRating) + str(sub.defenseRating) + str(sub.tacRating)
 	filename += '.wp' + str(warperiod)
 	filename += '.torp' + str(torp_value)
 	filename += '.solo' + str(sub.skipper)
-	filename + '.csv'
+	filename += '.csv'
 
 	writeResults(filename, results)
 
@@ -1852,13 +1852,11 @@ def attackConvoyWolfPack(warperiod, convoyType, skipper, sub_vals, wolfpack_size
 
 	summarizeResults(results)
 
-	filename = convoyType.lower() + '.' + str(sub.attackRating) + str(sub.defenseRating) + str(sub.tacRating) +  '+' + str(sub.skipper)
-
-	filename = 'loners.' + str(sub.attackRating) + str(sub.defenseRating) + str(sub.tacRating)
+	filename = convoyType.lower() + '.' + str(sub.attackRating) + str(sub.defenseRating) + str(sub.tacRating)
 	filename += '.wp' + str(warperiod)
 	filename += '.torp' + str(torp_value)
 	filename += '.wolfpack' + str(wolfpack_size)
-	filename + '.csv'
+	filename += '.csv'
 
 
 	writeResults(filename, results)
@@ -1882,6 +1880,5 @@ if __name__ == '__main__':
 
 	attackLonersHarness(warperiod, torp_value)
 	attackConvoyHarness(warperiod, torp_value)
-	
 	#attackConvoyWolfPackHarness(warperiod, torp_value)
 	
