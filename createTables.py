@@ -550,10 +550,8 @@ def compareTonnage(files):
 
 
 	# expand the tables to the same length
-	for t in tables:
-		
+	for t in tables:		
 		d = maxlen - len(t)
-		#print(t, len(t))
 
 		for i in range(0,d):
 			t.append(t[-1])
@@ -575,12 +573,13 @@ def compareTonnage(files):
 		print('-'*79)
 		print('Final:\t', finalTable)
 
-	sub = f.split('.')[1]
-	
+	return finalTable, drms
+
+def printTable(sub, table, drms):
 	if latex_output:
 		finalLine = sub[0] + '-' + sub[1] + '-' + sub[2] + '&'
 		
-		for r in finalTable:
+		for r in table:
 			finalLine += ' %2d' % r + '&'
 
 		for d in drms:
@@ -592,13 +591,14 @@ def compareTonnage(files):
 
 	else:
 		finalLine = sub[0] + '-' + sub[1] + '-' + sub[2] + ' '
-		finalLine += ' ' + str(finalTable).ljust(60, ' ') 
+		finalLine += ' ' + str(table).ljust(60, ' ') 
 
 		for d in drms:
 			finalLine += '%+2d, ' % d
 		finalLine = finalLine[0:-1]
 
-	return finalLine, len(finalTable), len(drms)
+	return finalLine
+
 
 
 def compareTonnageHarness(warperiod, subs, tgtType, wolfpack, torp_value):
@@ -606,26 +606,45 @@ def compareTonnageHarness(warperiod, subs, tgtType, wolfpack, torp_value):
 	# create filenames	
 	files = createFilenames(warperiod, subs, tgtType, wolfpack, torp_value)
 
-	lines = []
+	tables = []
+	drms = []
 	maxRolls = 0
 	maxDrms = 0
 	for f in files:
-		
-		line, rolls, drms = compareTonnage(f)
-
-		lines.append(line)
-		maxRolls = max(rolls, maxRolls)
-		maxDrms = max(maxDrms, drms)
 	
+		t, d = compareTonnage(f)
+		tables.append(t)
+		drms.append(d)
+
+		maxRolls = max(maxRolls, len(t))
+		maxDrms = max(maxDrms, len(d))
+
+
+	# make sure the are the same length!
+	for i in range(0, len(tables)):
+		if len(tables[i]) < maxRolls:
+			pad = [tables[i][-1]] * (maxRolls - len(tables[i]))
+
+			tables[i] += pad
+
+
+	lines = []
+	for t in zip(subs, tables, drms):
+		lines.append(printTable(t[0], t[1], t[2]))
+
 	if latex_output:
 		print('\\begin{table}[htb]')
-		targetStrings = {'c2' : 'Large Convoy', 'c1' : 'Small Convoy', 'loner' : 'Loner'}
-		label = 'table:' + tgtType + '.torp' + str(torp_value)
-		print('\\caption{\\label{' + label + '} War Period ' + str(warperiod) + ' -- ' + targetStrings[tgtType.lower()] + ' Target, Torpedo Value: ' + str(torp_value) + ' }')
+		targetStrings = {'c2' : 'Large Convoy', 'c1' : 'Small Convoy', 'loners' : 'Loners'}
+		label = 'table:tonnage.' + tgtType + '.torp' + str(torp_value)
+		print('\\caption{\\label{' + label + '} Tonnage Sunk;  WP ' + str(warperiod) + ' -- ' + targetStrings[tgtType.lower()] + ', torpedo rating: ' + str(torp_value) + ' }')
 
 		print('\\begin{tabular}{|l|' + maxRolls * ' c ' + '|' + maxDrms * ' c ' + '|}')
 		print('\\hline')
-		print('\\multirow{2}{*}{Sub} & \\multicolumn{' + str(maxRolls) + '}{|c|}{ 1D10 Roll } & \\multicolumn{' + str(maxDrms) + '}{|c|}{\\multirow{2}{*}{DRMs}} \\\\')
+
+		drmLabel = 'Elite Skipper DRM'
+		if wolfpack:
+			drmLabel = 'Wolfpack size DRM'
+		print('\\multirow{2}{*}{Sub} & \\multicolumn{' + str(maxRolls) + '}{|c|}{ 1D10 Roll } & \\multicolumn{' + str(maxDrms) + '}{|c|}{\\multirow{2}{*}{' + drmLabel + '}} \\\\')
 		
 		l = '&'
 		for i in range(0, maxRolls):
@@ -834,6 +853,6 @@ if __name__ == '__main__':
 	wolfpack = False
 	torp_value = -1
 
-	compareTonnageHarness(warperiod, subs, tgtType, wolfpack, torp_value)
-	#compareSunkHarness(warperiod, subs, tgtType, wolfpack, torp_value)
+	#compareTonnageHarness(warperiod, subs, tgtType, wolfpack, torp_value)
+	compareSunkHarness(warperiod, subs, tgtType, wolfpack, torp_value)
 	#comparePercentageHarness(warperiod, subs, tgtType, wolfpack, torp_value)
