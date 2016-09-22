@@ -459,8 +459,9 @@ def getPercentageRolls(series, basenumber=0):
 	try:
 		if n == None:
 			return '-/-'
+
 		if type(n[1]) is tuple:
-			return str(basenumber) + '+[' + str(n[1][0]) + '-' + str(n[1][1]) + ']'
+			return str(basenumber) + '/[' + str(n[1][0]) + '-' + str(n[1][1]) + ']'
 		else:
 			return '[0-' + str(n[1]) + ']'
 	except TypeError:
@@ -598,6 +599,8 @@ def printTable(sub, table, drms):
 		finalLine = finalLine[0:-1]
 
 	return finalLine
+
+
 
 
 
@@ -747,11 +750,7 @@ def compareShipsSunk(files):
 	sub = f.split('.')[1]
 
 	finalLine = sub[0] + '-' + sub[1] + '-' + sub[2] + ' '
-	#finalLine += '%50s        ' % str(finalTable) 
 	finalLine += ' ' + str(finalTable).ljust(60, ' ') 
-	#finalLine += '%+2d, ' % drms[0]
-	#finalLine += '%+2d, ' % drms[1]
-	#finalLine += '%+2d' % drms[2]
 	for d in drms:
 		finalLine += '%+2d, ' % d
 
@@ -791,12 +790,31 @@ def comparePercentageHarness(warperiod, subs, tgtType, wolfpack, torp_value):
 		for f2 in f:
 			lines.append(comparePercentages2(f2))
 
-	#print('WP ' + str(warperiod) + ' - ' + tgtType)
-	print('Sub Rating     Spotted           RTB       Damaged          Sunk      Promoted')
-	for l in lines:
-		print(l)
 
-	print('-'*79)
+	if latex_output:
+		print('\\begin{table}[htb]')
+		targetStrings = {'c2' : 'Large Convoy', 'c1' : 'Small Convoy', 'loners' : 'Loners'}
+
+		label = 'table:effects.' + tgtType + '.torp' + str(torp_value)
+		print('\\caption{\\label{' + label + '} Sub Effects;  WP ' + str(warperiod) + ' -- ' + targetStrings[tgtType.lower()] + ', torpedo rating: ' + str(torp_value) + ' }')
+
+		print('\\begin{tabular}{|c|c|c|c|c|c|}')
+		print('\\hline')
+		print('Sub & Spotted & RTB & Damaged & Sunk & Promoted \\\\')
+		print('\\hline')
+		for l in lines:
+			print(l)
+		print('\\hline')
+		print('\\end{tabular}')
+		print('\\end{table}')
+
+	else:
+		#print('WP ' + str(warperiod) + ' - ' + tgtType)
+		print('Sub Rating     Spotted           RTB       Damaged          Sunk      Promoted')
+		for l in lines:
+			print(l)
+
+		print('-'*79)
 
 
 
@@ -830,17 +848,28 @@ def comparePercentages2(file):
 
 	f = sub[0] + '-' + sub[1] + '-' + sub[2] + '       '
 
-	#if skipper > 0:
-	#	f = '      %+d    ' % skipper
+	if latex_output:
+		f += '& $' + spottedResult + '$'
+		f += '& $' + rtbResult + '$'
+		f += '& $' + damageResult + '$'
+		f += '& $' + sunkResult + '$'
+		if not wolfpack:
+			skipper = int(file.split('.')[4][4])
+			if skipper < 2:
+				f += '& $' + promotedResult + '$'
+			else:
+				f += '&'
+		f += '\\\\'
+	else:
 
-	f += '% 10s    ' % spottedResult
-	f += '% 10s    ' % rtbResult
-	f += '% 10s    ' % damageResult
-	f += '% 10s    ' % sunkResult
-	if not wolfpack:
-		skipper = int(file.split('.')[4][4])
-		if skipper < 2:
-			f += '% 10s    ' % promotedResult
+		f += '% 10s    ' % spottedResult
+		f += '% 10s    ' % rtbResult
+		f += '% 10s    ' % damageResult
+		f += '% 10s    ' % sunkResult
+		if not wolfpack:
+			skipper = int(file.split('.')[4][4])
+			if skipper < 2:
+				f += '% 10s    ' % promotedResult
 
 	return f
 
@@ -854,5 +883,5 @@ if __name__ == '__main__':
 	torp_value = -1
 
 	#compareTonnageHarness(warperiod, subs, tgtType, wolfpack, torp_value)
-	compareSunkHarness(warperiod, subs, tgtType, wolfpack, torp_value)
-	#comparePercentageHarness(warperiod, subs, tgtType, wolfpack, torp_value)
+	#compareSunkHarness(warperiod, subs, tgtType, wolfpack, torp_value)
+	comparePercentageHarness(warperiod, subs, tgtType, wolfpack, torp_value)
