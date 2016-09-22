@@ -1868,8 +1868,8 @@ if __name__ == '__main__':
 	random.seed()
 	#attackConvoy()
 	
-	warperiod = 1
-	torp_value = 0
+	warperiod = 2
+	torp_value = 1
 
 	# in WP 1 40% TP-1 60% TP0
 	# in WP 2 TP0
@@ -1878,7 +1878,7 @@ if __name__ == '__main__':
 	# in WP 5 20% TP2 80% TP1
 
 
-	#attackLonersHarness(warperiod, torp_value)
+	attackLonersHarness(warperiod, torp_value)
 	attackConvoyHarness(warperiod, torp_value)
-	#attackConvoyWolfPackHarness(warperiod, torp_value)
+	attackConvoyWolfPackHarness(warperiod, torp_value)
 	
