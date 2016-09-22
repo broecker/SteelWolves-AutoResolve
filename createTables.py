@@ -747,37 +747,85 @@ def compareShipsSunk(files):
 		print('-'*79)
 		print('Final:\t', finalTable)
 
-	sub = f.split('.')[1]
-
-	finalLine = sub[0] + '-' + sub[1] + '-' + sub[2] + ' '
-	finalLine += ' ' + str(finalTable).ljust(60, ' ') 
-	for d in drms:
-		finalLine += '%+2d, ' % d
-
-	finalLine = finalLine[0:-2]
-	return finalLine
+	return finalTable, drms
 
 
 def compareSunkHarness(warperiod, subs, tgtType, wolfpack, torp_value):
 	# create filenames	
 	files = createFilenames(warperiod, subs, tgtType, wolfpack, torp_value)
 
-	lines = []
+	tables = []
+	drms = []
+	maxRolls = 0
+	maxDrms = 0
 	for f in files:
-		lines.append(compareShipsSunk(f))
+	
+		t, d = compareShipsSunk(f)
+		tables.append(t)
+		drms.append(d)
 
-	print('-'*79)
+		maxRolls = max(maxRolls, len(t))
+		maxDrms = max(maxDrms, len(d))
 
-	if wolfpack:
-		print('WP ' + str(warperiod)  + ' - ' + tgtType + ' Wolfpack' + ' Torpedo value: ' + str(torp_value))
-		print('Sub    Ships Sunk                                                   Wolfpack DRM')
 
-	else:
-		print('WP ' + str(warperiod)  + ' - ' + tgtType + ' Torpedo value: ' + str(torp_value))
-		print('Sub    Ships Sunk                                                   Skipper DRM')
+	# make sure the are the same length!
+	for i in range(0, len(tables)):
+		if len(tables[i]) < maxRolls:
+			pad = [tables[i][-1]] * (maxRolls - len(tables[i]))
 
-	for l in lines:
+			tables[i] += pad
+
+
+	lines = []
+	for t in zip(subs, tables, drms):
+		lines.append(printTable(t[0], t[1], t[2]))
+
+
+	if latex_output:
+		print('\\begin{table}[htb]')
+		targetStrings = {'c2' : 'Large Convoy', 'c1' : 'Small Convoy', 'loners' : 'Loners'}
+		label = 'table:sunk.' + tgtType + '.torp' + str(torp_value)
+		print('\\caption{\\label{' + label + '} Ships Sunk;  WP ' + str(warperiod) + ' -- ' + targetStrings[tgtType.lower()] + ', torpedo rating: ' + str(torp_value) + ' }')
+
+		print('\\begin{tabular}{|l|' + maxRolls * ' c ' + '|' + maxDrms * ' c ' + '|}')
+		print('\\hline')
+
+		drmLabel = 'Elite Skipper DRM'
+		if wolfpack:
+			drmLabel = 'Wolfpack size DRM'
+		print('\\multirow{2}{*}{Sub} & \\multicolumn{' + str(maxRolls) + '}{|c|}{ 1D10 Roll } & \\multicolumn{' + str(maxDrms) + '}{|c|}{\\multirow{2}{*}{' + drmLabel + '}} \\\\')
+		
+		l = '&'
+		for i in range(0, maxRolls):
+			l += '%2d' % i
+			l += '&'
+		for i in range(0, maxDrms-1):
+			l += '&'
+		l += '\\\\'
 		print(l)
+
+		print('\\hline')
+		for l in lines:
+			print(l)
+		print('\\hline')
+		print('\\end{tabular}')
+
+		print('\\end{table}')
+	else:
+
+
+		print('-'*79)
+
+		if wolfpack:
+			print('WP ' + str(warperiod)  + ' - ' + tgtType + ' Wolfpack' + ' Torpedo value: ' + str(torp_value))
+			print('Sub    Ships Sunk                                                   Wolfpack DRM')
+
+		else:
+			print('WP ' + str(warperiod)  + ' - ' + tgtType + ' Torpedo value: ' + str(torp_value))
+			print('Sub    Ships Sunk                                                   Skipper DRM')
+
+		for l in lines:
+			print(l)
 
 
 
@@ -874,14 +922,127 @@ def comparePercentages2(file):
 	return f
 
 
+def compareCombinedHarness(warperiod, subs, tgtType, wolfpack, torp_value):
+	if not latex_output:
+		return
+
+	files = createFilenames(warperiod, subs, tgtType, wolfpack, torp_value)
+
+	tables = []
+	tablesSunk = []
+	drms = []
+	drmsSunk = []
+	maxRolls = 0
+	maxDrms = 0
+	for f in files:
+	
+		t, d = compareTonnage(f)
+		tables.append(t)
+		drms.append(d)
+
+		t2, d2 = compareShipsSunk(f)
+		tablesSunk.append(t2)
+		drmsSunk.append(d2)
+
+		maxRolls = max(maxRolls, len(t))
+		maxDrms = max(maxDrms, len(d))
+
+		maxRolls = max(maxRolls, len(t2))
+		maxDrms = max(maxDrms, len(d2))
+
+
+
+	# make sure the are the same length!
+	for i in range(0, len(tables)):
+		if len(tables[i]) < maxRolls:
+			pad = [tables[i][-1]] * (maxRolls - len(tables[i]))
+
+			tables[i] += pad
+
+	for i in range(0, len(tablesSunk)):
+		if len(tablesSunk[i]) < maxRolls:
+			pad = [tablesSunk[i][-1]] * (maxRolls - len(tablesSunk[i]))
+			tablesSunk[i] += pad
+
+	print('\\begin{table}[htb]')
+	print('\\centering')
+	targetStrings = {'c2' : 'Large Convoy', 'c1' : 'Small Convoy', 'loners' : 'Loners'}
+	label = 'table:' + tgtType + '.torp' + str(torp_value)
+	print('\\caption{\\label{' + label + '} Combat result;  WP ' + str(warperiod) + ' -- ' + targetStrings[tgtType.lower()] + ', torpedo rating: ' + str(torp_value) + ' }')
+
+	print('\\begin{tabular}{|c|c|' + maxRolls * ' c ' + '|' + maxDrms * ' c ' + '|}')
+	print('\\hline')
+
+	drmLabel = 'Elite Skipper DRM'
+	if wolfpack:
+		drmLabel = 'Wolfpack size DRM'
+	print('&\\multirow{2}{*}{Sub} & \\multicolumn{' + str(maxRolls) + '}{|c|}{ 1D10 Roll } & \\multicolumn{' + str(maxDrms) + '}{|c|}{\\multirow{2}{*}{' + drmLabel + '}} \\\\')
+	
+	l = '&&'
+	for i in range(0, maxRolls):
+		l += '%2d' % i
+		l += '&'
+	for i in range(0, maxDrms-1):
+		l += '&'
+	l += '\\\\'
+	print(l)
+
+	print('\\hline')
+	header = '\\multirow{' + str(len(subs)) + '}{*}{Tons}&'
+	for t in zip(subs, tables, drms):
+		print(header + printTable(t[0], t[1], t[2]))
+		header = '&'
+	print('\\hline')
+
+	header = '\\multirow{' + str(len(subs)) + '}{*}{Sunk}&'
+	for t in zip(subs, tablesSunk, drmsSunk):
+		print(header + printTable(t[0], t[1], t[2]))
+		header = '&'
+
+	print('\\hline')
+	print('\\end{tabular}')
+
+
+	lines = []
+	for f in files:
+		for f2 in f:
+			lines.append(comparePercentages2(f2))
+	
+	print('\\begin{tabular}{|c|c|c|c|c|c|}')
+	print('\\hline')
+	print('\\multicolumn{6}{|c|}{Combat Effects}\\\\')
+	print('\\hline')
+	print('Sub & Spotted & RTB & Damaged & Sunk & Promoted \\\\')
+	lastsub = ''
+	for l in lines:
+		sub = l[0:5]
+		if sub != lastsub:
+			print('\\hline')
+			lastsub = sub
+
+			print('\\multirow{3}{*}{' + sub + '}' + l[6:])
+		else:
+			print(l[6:])
+
+	print('\\hline')
+	print('\\end{tabular}')
+	print('\\end{table}')
+	
+
+
+
+
 if __name__ == '__main__':
 
 	warperiod = 1
 	subs = ('212', '332', '423', '533')
-	tgtType = 'C2'
+	tgtType = 'loners'
 	wolfpack = False
 	torp_value = -1
 
 	#compareTonnageHarness(warperiod, subs, tgtType, wolfpack, torp_value)
 	#compareSunkHarness(warperiod, subs, tgtType, wolfpack, torp_value)
-	comparePercentageHarness(warperiod, subs, tgtType, wolfpack, torp_value)
+	#comparePercentageHarness(warperiod, subs, tgtType, wolfpack, torp_value)
+
+	compareCombinedHarness(warperiod, subs, tgtType, wolfpack, torp_value)
+
