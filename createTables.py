@@ -27,7 +27,9 @@ import math
 
 
 verbose_output = False
-latex_output = True
+
+# allowed values: 'text', 'latex' or 'html'
+output = 'html'
 
 class Result:
 	def __init__(self, data):
@@ -585,8 +587,10 @@ def compareTonnage(files):
 	return finalTable, drms
 
 def printTable(sub, table, drms):
-	if latex_output:
-		finalLine = sub[0] + '-' + sub[1] + '-' + sub[2] + '&'
+
+	finalLine = sub[0] + '-' + sub[1] + '-' + sub[2]
+	if output == 'latex':
+		finalLine += '&'
 		
 		for r in table:
 			finalLine += ' %2d' % r + '&'
@@ -598,8 +602,18 @@ def printTable(sub, table, drms):
 		finalLine = finalLine[0:-1]
 		finalLine += '\\\\'
 
-	else:
-		finalLine = sub[0] + '-' + sub[1] + '-' + sub[2] + ' '
+	if output == 'html':
+		finalLine = '<tr><th nowrap scope="row">' + finalLine + '</th>\n'
+		for r in table:
+			finalLine +='\t<td>%02d' % r + '</td>\n'
+
+		for d in drms:
+			finalLine += '\t<td>%+2d' % d + '</td>\n' 
+		
+		finalLine += '</tr>'
+
+	if output == 'text':
+		finalLine += ' '
 		finalLine += ' ' + str(table).ljust(60, ' ') 
 
 		for d in drms:
@@ -643,7 +657,7 @@ def compareTonnageHarness(warperiod, subs, tgtType, wolfpack, torp_value):
 	for t in zip(subs, tables, drms):
 		lines.append(printTable(t[0], t[1], t[2]))
 
-	if latex_output:
+	if output == 'latex':
 		print('\\begin{table}[htb]')
 		targetStrings = {'c2' : 'Large Convoy', 'c1' : 'Small Convoy', 'loners' : 'Loners'}
 		label = 'table:tonnage.' + tgtType + '.torp' + str(torp_value)
@@ -673,7 +687,12 @@ def compareTonnageHarness(warperiod, subs, tgtType, wolfpack, torp_value):
 		print('\\end{tabular}')
 
 		print('\\end{table}')
-	else:
+	
+
+	if output == 'html':
+		pass
+
+	if output == 'text':
 		print('-'*79)
 
 		if wolfpack:
@@ -904,7 +923,7 @@ def comparePercentages2(file):
 
 	f = sub[0] + '-' + sub[1] + '-' + sub[2] + '       '
 
-	if latex_output:
+	if output == 'latex':
 		f += '& $' + spottedResult + '$'
 		f += '& $' + rtbResult + '$'
 		f += '& $' + damageResult + '$'
@@ -918,8 +937,25 @@ def comparePercentages2(file):
 		else:
 			f += '&'
 		f += '\\\\'
-	else:
+	
 
+	if output == 'html':
+		f = '<tr><th nowrap scope="row">' + f + '</th>'
+		if wolfpack:
+			wolfpack_size = (file.split('.')[4][8:])
+			f += '<td>' + wolfpack_size + '</td>'
+		else:
+			f += '<td />'
+
+		f += '<td>' + spottedResult + '</td>'
+		f += '<td>' + rtbResult + '</td>'
+		f += '<td>' + damageResult + '</td>'
+		f += '<td>' + sunkResult + '</td>'
+		f += '<td>' + promotedResult + '</td>'
+		f += '</tr>'
+
+
+	if output == 'text':
 		f += '% 10s    ' % spottedResult
 		f += '% 10s    ' % rtbResult
 		f += '% 10s    ' % damageResult
@@ -932,8 +968,157 @@ def comparePercentages2(file):
 	return f
 
 
-def compareCombinedHarness(warperiod, subs, tgtType, wolfpack, torp_value):
-	if not latex_output:
+def compareCombinedHarnessLatex(warperiod, subs, tgtType, wolfpack, torp_value):
+	files = createFilenames(warperiod, subs, tgtType, wolfpack, torp_value)
+
+	tables = []
+	tablesSunk = []
+	drms = []
+	drmsSunk = []
+	maxRolls = 0
+	maxDrms = 0
+	for f in files:
+	
+		t, d = compareTonnage(f)
+		tables.append(t)
+		drms.append(d)
+
+		t2, d2 = compareShipsSunk(f)
+		tablesSunk.append(t2)
+		drmsSunk.append(d2)
+
+		maxRolls = max(maxRolls, len(t))
+		maxDrms = max(maxDrms, len(d))
+
+		maxRolls = max(maxRolls, len(t2))
+		maxDrms = max(maxDrms, len(d2))
+
+
+
+	# make sure the are the same length!
+	for i in range(0, len(tables)):
+		if len(tables[i]) < maxRolls:
+			pad = [tables[i][-1]] * (maxRolls - len(tables[i]))
+
+			tables[i] += pad
+
+	for i in range(0, len(tablesSunk)):
+		if len(tablesSunk[i]) < maxRolls:
+			pad = [tablesSunk[i][-1]] * (maxRolls - len(tablesSunk[i]))
+			tablesSunk[i] += pad
+
+	print('%-----------------------------------------------------------------')
+	print('% WP' + str(warperiod) + ' - Torp value: ' + str(torp_value))
+	if wolfpack:
+		print('% Wolfpack attack on ' + tgtType)
+	else:
+		print('% Solo attack on ' + tgtType)
+	print('%-----------------------------------------------------------------')
+
+
+	print('\\begin{table}[htb]')
+	print('\\centering')
+	targetStrings = {'c2' : 'a large convoy (C2)', 'c1' : 'a small convoy (C1)', 'loners' : 'some loners'}
+	label = 'table:' + tgtType + '.torp' + str(torp_value)
+	if wolfpack:
+		label += '.wolfpack'
+	else:
+		label += '.solo'
+
+	caption = 'Combat result of '
+	if wolfpack:
+		caption += 'a wolfpack'
+	else:
+		caption += 'a single sub'
+	caption += ' attack on '
+	caption += targetStrings[tgtType.lower()]
+	caption += ' in war period ' + str(warperiod)
+	caption += ' with torpedo value $' + str(torp_value) + '$'
+
+	print('\\caption{\\label{' + label + '} ' + caption + '}')
+
+	print('\\begin{tabular}{|c|c|' + maxRolls * ' c ' + '|' + maxDrms * ' c ' + '|}')
+	print('\\hline')
+
+	drmLabel = 'Elite Skipper DRM'
+	if wolfpack:
+		drmLabel = 'Wolfpack size DRM'
+	print('&\\multirow{2}{*}{Sub} & \\multicolumn{' + str(maxRolls) + '}{|c|}{ 1D10 Roll } & \\multicolumn{' + str(maxDrms) + '}{|c|}{\\multirow{2}{*}{' + drmLabel + '}} \\\\')
+	
+	l = '&&'
+	for i in range(0, maxRolls):
+		l += '%2d' % i
+		l += '&'
+	if wolfpack:
+		for i in range(0, maxDrms):
+			l += str(2+2*i) + '&'
+	else:
+		for i in range(0, maxDrms):
+			l += '&'
+
+	l = l[:-1]		
+	l += '\\\\'
+	print(l)
+
+	# print tons 
+	print('\\hline')
+	header = '\\multirow{' + str(len(subs)) + '}{*}{Tons}&'
+	for t in zip(subs, tables, drms):
+		print(header + printTable(t[0], t[1], t[2]))
+		header = '&'
+	print('\\hline')
+
+	# print sunk
+	header = '\\multirow{' + str(len(subs)) + '}{*}{Sunk}&'
+	for t in zip(subs, tablesSunk, drmsSunk):
+		print(header + printTable(t[0], t[1], t[2]))
+		header = '&'
+
+	# end the table
+	if output == 'latex':
+		print('\\hline')
+		print('\\end{tabular}')
+
+	if output == 'html':
+		print('</table>')
+
+
+
+
+	# begin new table
+
+	lines = []
+	for f in files:
+		for f2 in f:
+			lines.append(comparePercentages2(f2))
+	
+	print('\\begin{tabular}{|c|c|c|c|c|c|}')
+	print('\\hline')
+	print('\\multicolumn{6}{|c|}{Combat Effects}\\\\')
+	print('\\hline')
+	print('Sub & Spotted & RTB & Damaged & Sunk & Promoted \\\\')
+	lastsub = ''
+	for l in lines:
+		sub = l[0:5]
+		if sub != lastsub:
+			print('\\hline')
+			lastsub = sub
+
+			print('\\multirow{3}{*}{' + sub + '}' + l[6:])
+		else:
+			print(l[6:])
+
+	print('\\hline')
+	print('\\end{tabular}')
+	print('\\end{table}')
+	print('%-----------------------------------------------------------------')
+	print('\\newpage')
+	
+
+
+
+def compareCombinedHarnessHtml(warperiod, subs, tgtType, wolfpack, torp_value):
+	if output == 'text':
 		return
 
 	files = createFilenames(warperiod, subs, tgtType, wolfpack, torp_value)
@@ -974,23 +1159,15 @@ def compareCombinedHarness(warperiod, subs, tgtType, wolfpack, torp_value):
 			pad = [tablesSunk[i][-1]] * (maxRolls - len(tablesSunk[i]))
 			tablesSunk[i] += pad
 
-
-	print('%-----------------------------------------------------------------')
-	print('% WP' + str(warperiod) + ' - Torp value: ' + str(torp_value))
+	print('<!--')
+	print('WP ' + str(warperiod) + ' Torp value: ' + str(torp_value))
 	if wolfpack:
-		print('% Wolfpack attack on ' + tgtType)
+		print('Wolfpack attack on ' + tgtType)
 	else:
-		print('% Solo attack on ' + tgtType)
-	print('%-----------------------------------------------------------------')
+		print('Solo attack on ' + tgtType)
+	print('-->')
 
-	print('\\begin{table}[htb]')
-	print('\\centering')
-	targetStrings = {'c2' : 'a large convoy (C2)', 'c1' : 'a small convoy (C1)', 'loners' : 'some loners'}
-	label = 'table:' + tgtType + '.torp' + str(torp_value)
-	if wolfpack:
-		label += '.wolfpack'
-	else:
-		label += '.solo'
+
 
 	caption = 'Combat result of '
 	if wolfpack:
@@ -998,78 +1175,88 @@ def compareCombinedHarness(warperiod, subs, tgtType, wolfpack, torp_value):
 	else:
 		caption += 'a single sub'
 	caption += ' attack on '
+	targetStrings = {'c2' : 'a large convoy (C2)', 'c1' : 'a small convoy (C1)', 'loners' : 'some loners'}
 	caption += targetStrings[tgtType.lower()]
 	caption += ' in war period ' + str(warperiod)
-	caption += ' with torpedo value $' + str(torp_value) + '$'
+	caption += ' with torpedo value ' + str(torp_value)
 
-	print('\\caption{\\label{' + label + '} ' + caption + '}')
+	print('<h3>' + caption + '</h3>')
+	print('<h4>Combat Result</h4>')
+	print('<table class="table table-striped">')
+	print('\t<thead class="thead-inverse">')
+	print('\t\t<tr>')
+	print('\t\t<th>Sub</th>')
+	print('\t\t<th colspan="' + str(maxRolls) + '">Rolls</th>')
 
-	print('\\begin{tabular}{|c|c|' + maxRolls * ' c ' + '|' + maxDrms * ' c ' + '|}')
-	print('\\hline')
-
-	drmLabel = 'Elite Skipper DRM'
 	if wolfpack:
-		drmLabel = 'Wolfpack size DRM'
-	print('&\\multirow{2}{*}{Sub} & \\multicolumn{' + str(maxRolls) + '}{|c|}{ 1D10 Roll } & \\multicolumn{' + str(maxDrms) + '}{|c|}{\\multirow{2}{*}{' + drmLabel + '}} \\\\')
-	
-	l = '&&'
+		print('\t\t<th colspan="' + str(maxDrms) + '">Wolfpack Size</th>')
+	else:
+		print('\t\t<th colspan="' + str(maxDrms) + '">DRMs</th>')
+	print('\t\t</tr>')
+	print('\t\t<th />')
+
 	for i in range(0, maxRolls):
-		l += '%2d' % i
-		l += '&'
+		print('\t\t<th>%02d' % i + '</th>')
+
 	if wolfpack:
 		for i in range(0, maxDrms):
-			l += str(2*i) + '&'
+			print('\t\t<th>%2d' % (2+i*2) + '</th>')
 	else:
 		for i in range(0, maxDrms):
-			l += '&'
+			print('\t\t<th>%+d' % i + '</th>')			
 
-	l = l[:-1]		
-	l += '\\\\'
-	print(l)
+	print('\t</thead>')
 
-	print('\\hline')
-	header = '\\multirow{' + str(len(subs)) + '}{*}{Tons}&'
+
 	for t in zip(subs, tables, drms):
-		print(header + printTable(t[0], t[1], t[2]))
-		header = '&'
-	print('\\hline')
+		print('\t\t' + printTable(t[0], t[1], t[2]))
 
-	header = '\\multirow{' + str(len(subs)) + '}{*}{Sunk}&'
-	for t in zip(subs, tablesSunk, drmsSunk):
-		print(header + printTable(t[0], t[1], t[2]))
-		header = '&'
+		colspan = maxRolls + maxDrms + 1
+		print('\t\t<td colspan"' + str(colspan) + '"Combat Effects</td>')
 
-	print('\\hline')
-	print('\\end{tabular}')
+	# end this table
+	if output == 'html':
+		print('</table>')
 
 
-	lines = []
+	# begin new table 
+	print('<h4>Combat Effects</h4>')
+	print('<table class="table table-striped">')
+	print('\t<thead class="thead-inverse">')
+	print('\t\t<tr>')
+	print('\t\t<th>Sub</th>')
+	print('\t\t<th>WP Size</th>')
+	print('\t\t<th>Spotted</th>')
+	print('\t\t<th>RTB</th>')
+	print('\t\t<th>Damaged</th>')
+	print('\t\t<th>Sunk</th>')
+	print('\t\t<th>Promoted</th>')
+	print('\t\t</tr>')
+	print('\t</th>')
+
+	print('\t<tbody>')
+
+	started = True
 	for f in files:
-		for f2 in f:
-			lines.append(comparePercentages2(f2))
-	
-	print('\\begin{tabular}{|c|c|c|c|c|c|}')
-	print('\\hline')
-	print('\\multicolumn{6}{|c|}{Combat Effects}\\\\')
-	print('\\hline')
-	print('Sub & Spotted & RTB & Damaged & Sunk & Promoted \\\\')
-	lastsub = ''
-	for l in lines:
-		sub = l[0:5]
-		if sub != lastsub:
-			print('\\hline')
-			lastsub = sub
 
-			print('\\multirow{3}{*}{' + sub + '}' + l[6:])
+		if not started:
+			print('\t\t\t<tr><th /><td /><td /><td /><td /><td /><td /></tr>')
 		else:
-			print(l[6:])
+			started = False
 
-	print('\\hline')
-	print('\\end{tabular}')
-	print('\\end{table}')
-	print('%-----------------------------------------------------------------')
-	print('\\newpage')
-	
+		for f2 in f:
+
+			l = comparePercentages2(f2)
+			sp = l.find('-')-1
+			sub = l[sp:sp+6]
+			
+			print('\t\t\t' + l)
+
+
+
+	print('\t</tbody>')
+	print('</table>')
+
 
 
 
@@ -1078,14 +1265,18 @@ if __name__ == '__main__':
 
 	warperiod = 1
 	subs = ('212', '332', '423', '533')
-	tgtType = 'C1' #, 'C2')
-	wolfpack = False
+	tgtType = 'C2' #, 'C2')
+	wolfpack = True
 	torp_value = 0
 
-	#compareTonnageHarness(warperiod, subs, tgtType, wolfpack, torp_value)
-	#compareSunkHarness(warperiod, subs, tgtType, wolfpack, torp_value)
-	#comparePercentageHarness(warperiod, subs, tgtType, wolfpack, torp_value)
+	if output == 'text':
+		compareTonnageHarness(warperiod, subs, tgtType, wolfpack, torp_value)
+		compareSunkHarness(warperiod, subs, tgtType, wolfpack, torp_value)
+		comparePercentageHarness(warperiod, subs, tgtType, wolfpack, torp_value)
+	
+	if output == 'latex':
+		compareCombinedHarnessLatex(warperiod, subs, tgtType, wolfpack, torp_value)
 
 
-	compareCombinedHarness(warperiod, subs, tgtType, wolfpack, torp_value)
-
+	if output == 'html':
+		compareCombinedHarnessHtml(warperiod, subs, tgtType, wolfpack, torp_value)
