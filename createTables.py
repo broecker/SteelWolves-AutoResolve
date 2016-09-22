@@ -497,7 +497,15 @@ def createFilenames(warperiod, subs, tgtType, wolfpack, torp_value):
 				f += '.csv'
 				section.append(f)
 		else:
-			for i in range(2,10,2):
+
+			if tgtType == 'loners':
+				raise ValueError
+			
+			count = 12
+			if tgtType == 'C1':
+				count = 8
+
+			for i in range(2,count,2):
 				f = tgtType.lower() + '.' + s 
 				f += '.wp' + str(warperiod)
 				f += '.torp' + str(torp_value)
@@ -907,6 +915,8 @@ def comparePercentages2(file):
 				f += '& $' + promotedResult + '$'
 			else:
 				f += '&'
+		else:
+			f += '&'
 		f += '\\\\'
 	else:
 
@@ -964,11 +974,35 @@ def compareCombinedHarness(warperiod, subs, tgtType, wolfpack, torp_value):
 			pad = [tablesSunk[i][-1]] * (maxRolls - len(tablesSunk[i]))
 			tablesSunk[i] += pad
 
+
+	print('%-----------------------------------------------------------------')
+	print('% WP' + str(warperiod) + ' - Torp value: ' + str(torp_value))
+	if wolfpack:
+		print('% Wolfpack attack on ' + tgtType)
+	else:
+		print('% Solo attack on ' + tgtType)
+	print('%-----------------------------------------------------------------')
+
 	print('\\begin{table}[htb]')
 	print('\\centering')
-	targetStrings = {'c2' : 'Large Convoy', 'c1' : 'Small Convoy', 'loners' : 'Loners'}
+	targetStrings = {'c2' : 'a large convoy (C2)', 'c1' : 'a small convoy (C1)', 'loners' : 'some loners'}
 	label = 'table:' + tgtType + '.torp' + str(torp_value)
-	print('\\caption{\\label{' + label + '} Combat result;  WP ' + str(warperiod) + ' -- ' + targetStrings[tgtType.lower()] + ', torpedo rating: ' + str(torp_value) + ' }')
+	if wolfpack:
+		label += '.wolfpack'
+	else:
+		label += '.solo'
+
+	caption = 'Combat result of '
+	if wolfpack:
+		caption += 'a wolfpack'
+	else:
+		caption += 'a single sub'
+	caption += ' attack on '
+	caption += targetStrings[tgtType.lower()]
+	caption += ' in war period ' + str(warperiod)
+	caption += ' with torpedo value $' + str(torp_value) + '$'
+
+	print('\\caption{\\label{' + label + '} ' + caption + '}')
 
 	print('\\begin{tabular}{|c|c|' + maxRolls * ' c ' + '|' + maxDrms * ' c ' + '|}')
 	print('\\hline')
@@ -982,8 +1016,14 @@ def compareCombinedHarness(warperiod, subs, tgtType, wolfpack, torp_value):
 	for i in range(0, maxRolls):
 		l += '%2d' % i
 		l += '&'
-	for i in range(0, maxDrms-1):
-		l += '&'
+	if wolfpack:
+		for i in range(0, maxDrms):
+			l += str(2*i) + '&'
+	else:
+		for i in range(0, maxDrms):
+			l += '&'
+
+	l = l[:-1]		
 	l += '\\\\'
 	print(l)
 
@@ -1027,6 +1067,8 @@ def compareCombinedHarness(warperiod, subs, tgtType, wolfpack, torp_value):
 	print('\\hline')
 	print('\\end{tabular}')
 	print('\\end{table}')
+	print('%-----------------------------------------------------------------')
+	print('\\newpage')
 	
 
 
@@ -1036,13 +1078,14 @@ if __name__ == '__main__':
 
 	warperiod = 1
 	subs = ('212', '332', '423', '533')
-	tgtType = 'loners'
+	tgtType = 'C1' #, 'C2')
 	wolfpack = False
-	torp_value = -1
+	torp_value = 0
 
 	#compareTonnageHarness(warperiod, subs, tgtType, wolfpack, torp_value)
 	#compareSunkHarness(warperiod, subs, tgtType, wolfpack, torp_value)
 	#comparePercentageHarness(warperiod, subs, tgtType, wolfpack, torp_value)
+
 
 	compareCombinedHarness(warperiod, subs, tgtType, wolfpack, torp_value)
 
