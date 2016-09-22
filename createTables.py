@@ -605,10 +605,10 @@ def printTable(sub, table, drms):
 	if output == 'html':
 		finalLine = '<tr><th nowrap scope="row">' + finalLine + '</th>\n'
 		for r in table:
-			finalLine +='\t<td>%02d' % r + '</td>\n'
+			finalLine +='\t<td>%02d' % r + '</td>'
 
 		for d in drms:
-			finalLine += '\t<td>%+2d' % d + '</td>\n' 
+			finalLine += '\t<td>%+2d' % d + '</td>' 
 		
 		finalLine += '</tr>'
 
@@ -1181,7 +1181,7 @@ def compareCombinedHarnessHtml(warperiod, subs, tgtType, wolfpack, torp_value):
 	caption += ' with torpedo value ' + str(torp_value)
 
 	print('<h3>' + caption + '</h3>')
-	print('<h4>Combat Result</h4>')
+	print('<h4>Tonnage Sunk</h4>')
 	print('<table class="table table-striped">')
 	print('\t<thead class="thead-inverse">')
 	print('\t\t<tr>')
@@ -1208,11 +1208,15 @@ def compareCombinedHarnessHtml(warperiod, subs, tgtType, wolfpack, torp_value):
 	print('\t</thead>')
 
 
+	# print tons
 	for t in zip(subs, tables, drms):
 		print('\t\t' + printTable(t[0], t[1], t[2]))
 
-		colspan = maxRolls + maxDrms + 1
-		print('\t\t<td colspan"' + str(colspan) + '"Combat Effects</td>')
+	print('\t\t\t<tr><th /><td colspan="'+str(maxRolls) + '">Ships sunk</td><td colspan="' + str(maxDrms) + '" /></tr>')
+
+	for t in zip(subs, tablesSunk, drmsSunk):
+		print('\t\t' + printTable(t[0], t[1], t[2]))	
+
 
 	# end this table
 	if output == 'html':
