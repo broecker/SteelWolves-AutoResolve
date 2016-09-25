@@ -78,6 +78,9 @@ celerybeat-schedule
 # dotenv
 .env
 
+# .ignore program output
+.csv
+
 # virtualenv
 venv/
 ENV/
