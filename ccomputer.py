@@ -1868,7 +1868,7 @@ if __name__ == '__main__':
 	random.seed()
 	#attackConvoy()
 	
-	warperiod = 2
+	warperiod = 4
 	torp_value = 1
 
 	# in WP 1 40% TP-1 60% TP0

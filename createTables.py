@@ -29,7 +29,7 @@ import math
 verbose_output = False
 
 # allowed values: 'text', 'latex' or 'html'
-output = 'html'
+output = 'latex'
 
 class Result:
 	def __init__(self, data):
@@ -460,7 +460,7 @@ def getPercentageRolls(series, basenumber=0):
 	n = getPercentageRollNumbers(series)
 	try:
 		if n == None:
-			return '-/-'
+			return '-'
 
 		if type(n[1]) is tuple:
 			return str(basenumber) + '/[' + str(n[1][0]) + '-' + str(n[1][1]) + ']'
@@ -511,10 +511,14 @@ def createFilenames(warperiod, subs, tgtType, wolfpack, torp_value):
 				f += '.csv'
 				section.append(f)
 		else:
-
 			if tgtType == 'loners':
+				print('Error -- wolfpacks cannot attack loners')
 				raise ValueError
-			
+
+			if warperiod < 2:
+				print('Error -- wolfpacks not allowed before WP2')
+				raise ValueError
+
 			count = 12
 			if tgtType == 'C1':
 				count = 8
@@ -875,7 +879,7 @@ def comparePercentageHarness(warperiod, subs, tgtType, wolfpack, torp_value):
 	lines = []
 	for f in files:
 		for f2 in f:
-			lines.append(comparePercentages2(f2))
+			lines.append(comparePercentages2(f2, wolfpack))
 
 
 	if latex_output:
@@ -905,7 +909,7 @@ def comparePercentageHarness(warperiod, subs, tgtType, wolfpack, torp_value):
 
 
 
-def comparePercentages2(file):
+def comparePercentages2(file, wolfpack):
 	data = loadFile(file)
 
 	damaged = [r.subsSpotted for r in data]
@@ -936,6 +940,16 @@ def comparePercentages2(file):
 	f = sub[0] + '-' + sub[1] + '-' + sub[2] + '       '
 
 	if output == 'latex':
+		if wolfpack:
+			wolfpack_size = (file.split('.')[4][8:])
+			f += '& $' + wolfpack_size + '$'
+		else:
+			skipper = int(file.split('.')[4][4])
+
+			if skipper > 0:
+				f += '& $%+d' % skipper + '$'
+			else:
+				f += '& '
 		f += '& $' + spottedResult + '$'
 		f += '& $' + rtbResult + '$'
 		f += '& $' + damageResult + '$'
@@ -945,7 +959,7 @@ def comparePercentages2(file):
 			if skipper < 2:
 				f += '& $' + promotedResult + '$'
 			else:
-				f += '&'
+				f += '& $-$'
 		else:
 			f += '&'
 		f += '\\\\'
@@ -987,6 +1001,9 @@ def comparePercentages2(file):
 def compareCombinedHarnessLatex(warperiod, subs, tgtType, wolfpack, torp_value):
 	files = createFilenames(warperiod, subs, tgtType, wolfpack, torp_value)
 
+	targetStrings = {'c2' : 'a large convoy (C2)', 'c1' : 'a small convoy (C1)', 'loners' : 'some loners'}
+
+
 	tables = []
 	tablesSunk = []
 	drms = []
@@ -1027,14 +1044,18 @@ def compareCombinedHarnessLatex(warperiod, subs, tgtType, wolfpack, torp_value):
 	print('% WP' + str(warperiod) + ' - Torp value: ' + str(torp_value))
 	if wolfpack:
 		print('% Wolfpack attack on ' + tgtType)
+		print('\\subsubsection{Wolfpack vs ' + targetStrings[tgtType.lower()] + '}')
+
 	else:
 		print('% Solo attack on ' + tgtType)
+		print('\\subsubsection{Solo vs ' + targetStrings[tgtType.lower()] + '}')
+
 	print('%-----------------------------------------------------------------')
 
 
+
 	print('\\begin{table}[htb]')
-	print('\\centering')
-	targetStrings = {'c2' : 'a large convoy (C2)', 'c1' : 'a small convoy (C1)', 'loners' : 'some loners'}
+	#print('\\centering')
 	label = 'table:' + tgtType + '.torp' + str(torp_value)
 	if wolfpack:
 		label += '.wolfpack'
@@ -1056,11 +1077,14 @@ def compareCombinedHarnessLatex(warperiod, subs, tgtType, wolfpack, torp_value):
 	print('\\begin{tabular}{|c|c|' + maxRolls * ' c ' + '|' + maxDrms * ' c ' + '|}')
 	print('\\hline')
 
-	drmLabel = 'Elite Skipper DRM'
+	print('\\multicolumn{' +str(maxRolls + maxDrms + 2) + '}{|c|}{Combat Result}\\\\')
+	print('\\hline')
+
 	if wolfpack:
-		drmLabel = 'Wolfpack size DRM'
-	print('&\\multirow{2}{*}{Sub} & \\multicolumn{' + str(maxRolls) + '}{|c|}{ 1D10 Roll } & \\multicolumn{' + str(maxDrms) + '}{|c|}{\\multirow{2}{*}{' + drmLabel + '}} \\\\')
-	
+		print('&\\multirow{2}{*}{Sub} & \\multicolumn{' + str(maxRolls) + '}{c|}{ 1D10 Roll } & \\multicolumn{' + str(maxDrms) + '}{|c|}{Wolfpack size DRM} \\\\')
+	else:
+		print('&\\multirow{2}{*}{Sub} & \\multicolumn{' + str(maxRolls) + '}{c|}{ 1D10 Roll } & \\multicolumn{' + str(maxDrms) + '}{|c|}{Elite skipper DRM} \\\\')
+
 	l = '&&'
 	for i in range(0, maxRolls):
 		l += '%2d' % i
@@ -1094,6 +1118,7 @@ def compareCombinedHarnessLatex(warperiod, subs, tgtType, wolfpack, torp_value):
 	if output == 'latex':
 		print('\\hline')
 		print('\\end{tabular}')
+		print('\\quad\\\\')
 
 	if output == 'html':
 		print('</table>')
@@ -1106,13 +1131,17 @@ def compareCombinedHarnessLatex(warperiod, subs, tgtType, wolfpack, torp_value):
 	lines = []
 	for f in files:
 		for f2 in f:
-			lines.append(comparePercentages2(f2))
+			lines.append(comparePercentages2(f2, wolfpack))
 	
-	print('\\begin{tabular}{|c|c|c|c|c|c|}')
+	print('\\begin{tabular}{|c|c|c|c|c|c|c|}')
 	print('\\hline')
-	print('\\multicolumn{6}{|c|}{Combat Effects}\\\\')
+	print('\\multicolumn{7}{|c|}{Combat Effects}\\\\')
 	print('\\hline')
-	print('Sub & Spotted & RTB & Damaged & Sunk & Promoted \\\\')
+
+	if wolfpack:
+		print('Sub & Wolfpack Size & Spotted & RTB & Damaged & Sunk & Promoted \\\\')
+	else:
+		print('Sub & Elite Skipper & Spotted & RTB & Damaged & Sunk & Promoted \\\\')
 	lastsub = ''
 	for l in lines:
 		sub = l[0:5]
@@ -1271,7 +1300,7 @@ def compareCombinedHarnessHtml(warperiod, subs, tgtType, wolfpack, torp_value):
 
 		for f2 in f:
 
-			l = comparePercentages2(f2)
+			l = comparePercentages2(f2, wolfpack)
 			sp = l.find('-')-1
 			sub = l[sp:sp+6]
 			
@@ -1288,12 +1317,12 @@ def compareCombinedHarnessHtml(warperiod, subs, tgtType, wolfpack, torp_value):
 
 if __name__ == '__main__':
 
-	warperiod = 2
-	#subs = ('212', '332', '423', '533')
-	subs = ('332', '423', '533')
+	warperiod = 3
+	subs = ('212', '332', '423', '533')
+	#subs = ('332', '423', '533')
 
-	tgtType = 'C1' #, 'C2')
-	wolfpack = True
+	tgtType = 'loners' #, 'C2')
+	wolfpack = False
 	torp_value = 0
 
 	if output == 'text':
@@ -1302,7 +1331,58 @@ if __name__ == '__main__':
 		comparePercentageHarness(warperiod, subs, tgtType, wolfpack, torp_value)
 	
 	if output == 'latex':
-		compareCombinedHarnessLatex(warperiod, subs, tgtType, wolfpack, torp_value)
+
+
+		compareCombinedHarnessLatex(1, subs, 'loners', False, -1)
+		compareCombinedHarnessLatex(1, subs, 'C1', False, -1)
+		compareCombinedHarnessLatex(1, subs, 'C2', False, -1)
+
+		compareCombinedHarnessLatex(1, subs, 'loners', False, 0)
+		compareCombinedHarnessLatex(1, subs, 'C1', False, 0)
+		compareCombinedHarnessLatex(1, subs, 'C2', False, 0)
+
+		compareCombinedHarnessLatex(2, subs, 'loners', False, 0)
+		compareCombinedHarnessLatex(2, subs, 'C1', False, 0)
+		compareCombinedHarnessLatex(2, subs, 'C2', False, 0)
+		compareCombinedHarnessLatex(2, subs, 'C1', True, 0)
+		compareCombinedHarnessLatex(2, subs, 'C2', True, 0)
+
+		compareCombinedHarnessLatex(2, subs, 'loners', False, 1)
+		compareCombinedHarnessLatex(2, subs, 'C1', False, 1)
+		compareCombinedHarnessLatex(2, subs, 'C2', False, 1)
+		compareCombinedHarnessLatex(2, subs, 'C1', True, 1)
+		compareCombinedHarnessLatex(2, subs, 'C2', True, 1)
+
+		subs = ('332', '423', '533')
+		compareCombinedHarnessLatex(3, subs, 'loners', False, 0)
+		compareCombinedHarnessLatex(3, subs, 'C1', False, 0)
+		compareCombinedHarnessLatex(3, subs, 'C2', False, 0)
+		compareCombinedHarnessLatex(3, subs, 'C1', True, 0)
+		compareCombinedHarnessLatex(3, subs, 'C2', True, 0)
+
+		compareCombinedHarnessLatex(3, subs, 'loners', False, 1)
+		compareCombinedHarnessLatex(3, subs, 'C1', False, 1)
+		compareCombinedHarnessLatex(3, subs, 'C2', False, 1)
+		compareCombinedHarnessLatex(3, subs, 'C1', True, 1)
+		compareCombinedHarnessLatex(3, subs, 'C2', True, 1)
+
+		compareCombinedHarnessLatex(4, subs, 'loners', False, 1)
+		compareCombinedHarnessLatex(4, subs, 'C1', False, 1)
+		compareCombinedHarnessLatex(4, subs, 'C2', False, 1)
+		compareCombinedHarnessLatex(4, subs, 'C1', True, 1)
+		compareCombinedHarnessLatex(4, subs, 'C2', True, 1)
+
+		compareCombinedHarnessLatex(5, subs, 'loners', False, 1)
+		compareCombinedHarnessLatex(5, subs, 'C1', False, 1)
+		compareCombinedHarnessLatex(5, subs, 'C2', False, 1)
+		compareCombinedHarnessLatex(5, subs, 'C1', True, 1)
+		compareCombinedHarnessLatex(5, subs, 'C2', True, 1)
+
+		compareCombinedHarnessLatex(5, subs, 'loners', False, 2)
+		compareCombinedHarnessLatex(5, subs, 'C1', False, 2)
+		compareCombinedHarnessLatex(5, subs, 'C2', False, 2)
+		compareCombinedHarnessLatex(5, subs, 'C1', True, 2)
+		compareCombinedHarnessLatex(5, subs, 'C2', True, 2)
 
 
 	if output == 'html':
