@@ -574,6 +574,90 @@ class Wolfpack:
 		return self.name +'(' + str(len(self.subs)) + ' boats)'
 
 
+class OpArea:
+
+	def __init__(self, name, warperiod):
+		self.name = name
+		self.warperiod = warperiod
+
+		self.homeWaters = False
+		self.airCover = 'light'
+		self.subArea = True
+
+		# area specific -- example from north sea at wp1
+		self.activityChart = [None, None, -1, -1, 0, 0, 1, 1, 3, 3]
+		self.contactTable = [None, 'L', 'L', 'L', 'L', 'L', 'L', 'C', 'C', 'C', 'L']
+
+
+	def contactAndCombat(self, sub, warperiod, torp_value, bdienst_value, enigma_value):
+		result = CombatResult(sub)
+
+		bdienst_area = False
+		search_planes = 0
+		sub_failed_to_join_wolfpack = False
+		more_than_six_subs_in_area = False
+		bad_weather = False
+
+		contactRoll = random.randint(0, 9)
+
+		if contactRoll == 0 and self.subArea:
+			# proceed to sub contact
+			print('[Sub combat] Not implemented yet')
+
+		else:
+
+			if bdienst_area:
+				contactRoll += 1
+
+			contactRoll += min(bdienst_value + enigma_value, 3)
+			contactRoll += search_planes
+
+			if sub.spotted and warperiod >= 3:
+				contactRoll -= 1
+
+			if sub_failed_to_join_wolfpack:
+				contactRoll -= 3
+
+			if sub.inexperienced:
+				contactRoll -= 1
+
+			if more_than_six_subs_in_area:
+				contactRoll -= 1
+
+			if bad_weather:
+				contactRoll -= 2
+
+			contactRoll = min(9, max(0, contactRoll))
+			c = self.activityChart[contactRoll]
+
+			if c: 
+
+				c2 = random.randint(0, 9) + c + search_planes
+				c2 = min(c2, 10)
+
+				t = self.contactTable[c2]
+
+				if t == 'L':
+
+					pass
+
+				if t == 'C':
+
+					# type based on 
+
+					pass
+
+
+
+		# roll on the endurance table [14.7]
+
+
+		return result
+
+
+
+
+
 def getEvent(type) : 
 	e = Encounter(type, None, None, None, None);
 	e.validTarget = False;
@@ -1868,8 +1952,10 @@ if __name__ == '__main__':
 	random.seed()
 	#attackConvoy()
 	
-	warperiod = 2
+	warperiod = 1
 	torp_value = 1
+	bdienst_value = 2
+	enigma_value = 2
 
 	# in WP 1 40% TP-1 60% TP0
 	# in WP 2 TP0
@@ -1878,7 +1964,18 @@ if __name__ == '__main__':
 	# in WP 5 20% TP2 80% TP1
 
 
-	attackLonersHarness(warperiod, torp_value)
-	attackConvoyHarness(warperiod, torp_value)
-	attackConvoyWolfPackHarness(warperiod, torp_value)
+	#attackLonersHarness(warperiod, torp_value)
+	#attackConvoyHarness(warperiod, torp_value)
+	#attackConvoyWolfPackHarness(warperiod, torp_value)
+
+
+	opArea = OpArea('North Sea', warperiod)
+
+	results = []
+	for i in range(0, globals.attackIterations):
+		sub = Sub('U-'+ str(i), 3, 3, 2, 0)
+
+		r = opArea.contactAndCombat(sub, warperiod, torp_value, bdienst_value, enigma_value)
+		r.printSummary()
+		results.append(r)
 	
