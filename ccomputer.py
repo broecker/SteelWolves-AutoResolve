@@ -309,16 +309,16 @@ class Column:
 
 class Convoy:
 	'''Convoys of different size hold different columns'''
-	def __init__(self, type):
+	def __init__(self, type, col_sizes=None):
 		self.columns = []
 		self.straggle_level = 0
 
 		if type == 'C1':
 			# fill in columns [13.24]
-			os = Column(self, 'Outer Starboard', None, 2, cups['outer'], 6)
-			s = Column(self, 'Starboard', 9, 1, cups['inner'], 6)
-			p = Column(self, 'Port', 9, 1, cups['inner'], 6)
-			op = Column(self, 'Outer Port', None, 2, cups['outer'], 6)
+			os = Column(self, 'Outer Starboard', None, 2, cups['outer'], col_sizes['Outer'] or 6 )
+			s = Column(self, 'Starboard', 9, 1, cups['inner'], col_sizes['Inner'] or 6 )
+			p = Column(self, 'Port', 9, 1, cups['inner'], col_sizes['Inner'] or 6 )
+			op = Column(self, 'Outer Port', None, 2, cups['outer'], col_sizes['Outer'] or 6 )
 
 			os.setAdjacent([s])
 			s.setAdjacent([os,p])
@@ -329,12 +329,12 @@ class Convoy:
 
 		if type == 'C2':
 			# fill in columns [13.24]
-			os = Column(self, 'Outer Starboard', None, 3, cups['outer'], 6)
-			s = Column(self, 'Starboard', 7, 2, cups['inner'], 6)
-			cs = Column(self, 'Center Starboard', 9, 1, cups['center'], 6)
-			cp = Column(self, 'Center Port', 9, 1, cups['center'], 6)
-			p = Column(self, 'Port', 7, 2, cups['inner'], 6)
-			op = Column(self, 'Outer Port', None, 3, cups['outer'], 6)
+			os = Column(self, 'Outer Starboard', None, 3, cups['outer'], col_sizes['Outer'] or 6 )
+			s = Column(self, 'Starboard', 7, 2, cups['inner'], col_sizes['Inner'] or 6 )
+			cs = Column(self, 'Center Starboard', 9, 1, cups['center'], col_sizes['Center'] or 6 )
+			cp = Column(self, 'Center Port', 9, 1, cups['center'], col_sizes['Center'] or 6 )
+			p = Column(self, 'Port', 7, 2, cups['inner'], col_sizes['Inner'] or 6 )
+			op = Column(self, 'Outer Port', None, 3, cups['outer'], col_sizes['Outer'] or 6 )
 
 			os.setAdjacent([s])
 			s.setAdjacent([os,cs])
@@ -589,23 +589,15 @@ class OpArea:
 		self.contactTable = [None, 'L', 'L', 'L', 'L', 'L', 'L', 'C', 'C', 'C', 'L']
 
 
-	def contactAndCombat(self, sub, warperiod, torp_value, bdienst_value, enigma_value):
-		result = CombatResult(sub)
 
-		bdienst_area = False
-		search_planes = 0
-		sub_failed_to_join_wolfpack = False
-		more_than_six_subs_in_area = False
-		bad_weather = False
-
+	def makeContact(self, bdienst_area, search_planes, sub_failed_to_join_wolfpack, more_than_six_subs_in_area, bad_weather):
 		contactRoll = random.randint(0, 9)
-
 		if contactRoll == 0 and self.subArea:
 			# proceed to sub contact
 			print('[Sub combat] Not implemented yet')
+			return None
 
 		else:
-
 			if bdienst_area:
 				contactRoll += 1
 
@@ -629,23 +621,47 @@ class OpArea:
 
 			contactRoll = min(9, max(0, contactRoll))
 			c = self.activityChart[contactRoll]
+			return c
 
-			if c: 
 
-				c2 = random.randint(0, 9) + c + search_planes
-				c2 = min(c2, 10)
+	def contactAndCombat(self, sub, warperiod, torp_value, bdienst_value, enigma_value):
+		result = CombatResult(sub)
 
-				t = self.contactTable[c2]
+		bdienst_area = False
+		search_planes = 0
+		sub_failed_to_join_wolfpack = False
+		more_than_six_subs_in_area = False
+		bad_weather = False
 
-				if t == 'L':
+		secondRound = False
 
-					pass
+		c = self.makeContact(bdienst_area, search_planes, sub_failed_to_join_wolfpack, more_than_six_subs_in_area, bad_weather)
+		if c: 
+			c2 = random.randint(0, 9) + c + search_planes
+			c2 = min(c2, 10)
 
-				if t == 'C':
+			t = self.contactTable[c2]
 
-					# type based on 
+			if t == 'L':
+				# maps activity to loner counter
+				a2lc = {-1:1, 0:2, 1:3, 3:4}
+				result = attackLoner(warperiod, sub, torp_value, a2lc[c])
 
-					pass
+				secondRound = True
+			if t == 'C':
+				# maps activity to type, outer, inner and center cups
+				a2cp = {-1:('C1', {'Outer':6,'Inner':6, 'Center':0}), 0:('C1',{'Outer':10,'Inner':10, 'Center':0}), 1:('C2',{'Outer':10,'Inner':10, 'Center':10}), 3:('C2',{'Outer':12,'Inner':12, 'Center':12})}
+
+				convoy = Convoy(a2cp[c][0], a2cp[c][1])
+				convoy.straggle_level = globals.base_straggle_level
+
+				result = attackConvoy(warperiod, convoy, sub, torp_value)
+
+				pass
+
+		if self.homeWaters and (not c or secondRound):
+			pass
+
 
 
 
@@ -1633,7 +1649,23 @@ def attackScatteredLoners(sub, targets, torp_value, reattackPossible):
 	return defense
 
 
-def attackLoners(warperiod, skipper, sub_vals, torp_value):
+
+def attackLoner(warperiod, sub, torp_value, num_targets):
+
+	# create convoy and subs
+	targets = []
+	for i in range(0, num_targets):
+		targets.append(random.choice(cups['loner']))
+	
+	result = attackScatteredLoners(sub, targets, torp_value, False)
+	
+	if globals.verbose_combat:
+		result.printSummary()
+
+	return result
+
+
+def attackLoners(warperiod, skipper, sub_vals, torp_value, num_targets=4):
 	results = []
 
 
@@ -1652,24 +1684,14 @@ def attackLoners(warperiod, skipper, sub_vals, torp_value):
 
 		sub = Sub('U-'+str(i), sub_atk, sub_def, sub_tac, skipper)
 
-		# create convoy and subs
-		targets = []
-		for i in range(0,4):
-			targets.append(random.choice(cups['loner']))
-
-		
-		defense = attackScatteredLoners(sub, targets, torp_value, False)
-		
-		if globals.verbose_combat:
-			defense.printSummary()
-	
-		results.append(defense)
+		result = attackLoner(warperiod, sub, torp_value, 4)
+		results.append(result)
 
 
 		if sub.eligibleForPromotion():
 			if globals.verbose_combat:
 				print('Sub eligible for promotion (' + str(sub.targetsSunk) +' tgts, ' + str(sub.tonsSunk) + ' tons)' )
-			defense.subPromoted = 1
+			result.subPromoted = 1
 			sub.promoteSkipper()
 
 
@@ -1688,11 +1710,76 @@ def attackConvoyHarness(warperiod, torp_value):
 
 	for skipper in range(0, 3):
 		for sub in subs:
-			attackConvoy(warperiod, 'C1', skipper, sub, torp_value)
-			attackConvoy(warperiod, 'C2', skipper, sub, torp_value)
+			attackConvoy2(warperiod, 'C1', skipper, sub, torp_value)
+			attackConvoy2(warperiod, 'C2', skipper, sub, torp_value)
 
 
-def attackConvoy(warperiod, convoyType, skipper, sub_vals, torp_value):
+def attackConvoy(warperiod, convoy, sub, torp_value):
+
+	convoy.placeSub(sub)
+
+	# first round of attack
+	targets = revealCounters(convoy, sub)
+
+	seedTDCCup(warperiod)
+	targets = placeTDC(targets, sub, 1)
+	targets = selectTargets(targets, sub)
+	result = attackTargets(convoy, targets, sub, torp_value)
+
+	defense = convoyCounterAttack(convoy, sub, 1)
+	result.combine([defense])
+
+
+	# determine if we go into a reattack round
+	if not (sub.damage > 0 or sub.rtb):
+		# [14.4] Re-attack rounds
+
+		# [29.3] Check for straggle increase
+		increaseStraggle(convoy, result.sunk+result.damaged, 1)
+
+		# try to move up one column
+
+		# TODO - Implement me
+		sub.improvePosition()
+
+
+		# second round of attack
+		targets = revealCounters(convoy, sub)
+
+		seedTDCCup(warperiod)
+		targets = placeTDC(targets, sub, 2)
+		targets = selectTargets(targets, sub)
+		result2 = attackTargets(convoy, targets, sub, torp_value)
+
+		defense = convoyCounterAttack(convoy, sub, 2)
+		result.combine([result2, defense])
+
+
+		# possible 3rd round of combat
+		if not (sub.damage > 0 or sub.rtb) and sub.skipper > 0:
+
+			increaseStraggle(convoy, result2.sunk+result2.damaged>0, 2)
+
+			targets = revealCounters(convoy, sub)
+			seedTDCCup(warperiod)
+
+			targets = placeTDC(targets, sub, 2)
+			targets = selectTargets(targets, sub)
+			result3 = attackTargets(convoy, targets, sub, torp_value)
+
+			defense = convoyCounterAttack(convoy, sub, 2)
+			result.combine([result3, defense])
+
+	if sub.eligibleForPromotion():
+		if globals.verbose_combat:
+			print('Sub eligible for promotion (' + str(sub.targetsSunk) +' tgts, ' + str(sub.tonsSunk) + ' tons)' )
+		result.subPromoted = 1
+		sub.promoteSkipper()
+
+	return result
+
+
+def attackConvoy2(warperiod, convoyType, skipper, sub_vals, torp_value):
 
 	results = []
 
@@ -1709,65 +1796,8 @@ def attackConvoy(warperiod, convoyType, skipper, sub_vals, torp_value):
 
 		# create the single(!) sub
 		sub = Sub('U-'+str(i), sub_vals[0], sub_vals[1], sub_vals[2], skipper)
-		convoy.placeSub(sub)
 
-		# first round of attack
-		targets = revealCounters(convoy, sub)
-
-		seedTDCCup(warperiod)
-		targets = placeTDC(targets, sub, 1)
-		targets = selectTargets(targets, sub)
-		result = attackTargets(convoy, targets, sub, torp_value)
-
-		defense = convoyCounterAttack(convoy, sub, 1)
-		result.combine([defense])
-
-
-		# determine if we go into a reattack round
-		if not (sub.damage > 0 or sub.rtb):
-			# [14.4] Re-attack rounds
-
-			# [29.3] Check for straggle increase
-			increaseStraggle(convoy, result.sunk+result.damaged, 1)
-
-			# try to move up one column
-
-			# TODO - Implement me
-			sub.improvePosition()
-
-
-			# second round of attack
-			targets = revealCounters(convoy, sub)
-
-			seedTDCCup(warperiod)
-			targets = placeTDC(targets, sub, 2)
-			targets = selectTargets(targets, sub)
-			result2 = attackTargets(convoy, targets, sub, torp_value)
-
-			defense = convoyCounterAttack(convoy, sub, 2)
-			result.combine([result2, defense])
-
-
-			# possible 3rd round of combat
-			if not (sub.damage > 0 or sub.rtb) and sub.skipper > 0:
-
-				increaseStraggle(convoy, result2.sunk+result2.damaged>0, 2)
-
-				targets = revealCounters(convoy, sub)
-				seedTDCCup(warperiod)
-
-				targets = placeTDC(targets, sub, 2)
-				targets = selectTargets(targets, sub)
-				result3 = attackTargets(convoy, targets, sub, torp_value)
-
-				defense = convoyCounterAttack(convoy, sub, 2)
-				result.combine([result3, defense])
-
-		if sub.eligibleForPromotion():
-			if globals.verbose_combat:
-				print('Sub eligible for promotion (' + str(sub.targetsSunk) +' tgts, ' + str(sub.tonsSunk) + ' tons)' )
-			result.subPromoted = 1
-			sub.promoteSkipper()
+		result = attackConvoy(warperiod, convoy, sub, torp_value)
 
 		result.normalize()
 		results.append(result)
@@ -1969,11 +1999,16 @@ if __name__ == '__main__':
 	#attackConvoyWolfPackHarness(warperiod, torp_value)
 
 
+
+	seedTDCCup(warperiod)
+	seedCups(warperiod)
+	globals.setWP(warperiod)
+
 	opArea = OpArea('North Sea', warperiod)
 
 	results = []
 	for i in range(0, globals.attackIterations):
-		sub = Sub('U-'+ str(i), 3, 3, 2, 0)
+		sub = Sub('U-'+ str(i), 2, 1, 2, 0)
 
 		r = opArea.contactAndCombat(sub, warperiod, torp_value, bdienst_value, enigma_value)
 		r.printSummary()
