@@ -76,10 +76,10 @@ target/
 celerybeat-schedule
 
 # dotenv
-.env
+*.env
 
 # .ignore program output
-.csv
+*.csv
 
 # virtualenv
 venv/
