@@ -92,7 +92,7 @@ def dieRoller(dice, face, drm, count, showStats, hasZero=True):
 
 			s = "%4d" % rolls[i] + ' '
 			
-			c = round(float(rolls[i]) / maxRoll * 10)
+			c = int(round(float(rolls[i]) / maxRoll * 10)
 			s += c * '*'
 
 			if rolls[i] == maxRoll:
